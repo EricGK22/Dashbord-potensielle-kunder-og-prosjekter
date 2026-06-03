@@ -1,6 +1,10 @@
 import requests
+from django.shortcuts import render
+from concurrent.futures import ThreadPoolExecutor
 
 SESSION = requests.Session()  # Gjenbruker samme session for bedre ytelse og håndtering av cookies
+
+
 
 def _hent_omsetning_fra_brreg(orgnr):
     url = f"https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}"
@@ -41,7 +45,7 @@ def hent_daglig_leder(orgnr):
         return "Ikke oppført"
     except:
         return "Ukjent"
-def _geokode(adresse):
+def _koordinater(adresse):
     gate = ",".join(adresse.get("adresse", []))
     sok = f"{gate} {adresse.get('postnummer','')} {adresse.get('poststed','')}".strip()
     
@@ -62,22 +66,45 @@ def _geokode(adresse):
         pass
     return None, None
 
-def potential_customers(selskapsform="AS"):
+
+def _kommuner():
+    url = "https://api.kartverket.no/kommuneinfo/v1/kommuner"
+    
+    try: 
+        response = SESSION.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except Exception as e:
+        print(f"Feil ved innhenting av kommuner: {e}")
+        return {}
+    return dict(sorted(
+        ((k["kommunenummer"], k["kommunenavnNorsk"]) for k in data),
+        key = lambda kv: kv[1],
+    ))
+
+def potential_customers(selskapsform="AS", kommuner = None, minste_omsetning=10_000_000):
+    
+   
+    if kommuner is None:
+        kommuner = [
+            "0301",
+            "3201", "3203", "3205", "3207", "3209", "3212",
+            "3214", "3216", "3218", "3220", "3222", "3224",
+            "3226", "3228", "3230", "3232", "3234", "3236",
+            "3238", "3240", "3242",
+        ]
     url = "https://data.brreg.no/enhetsregisteret/api/enheter"
     
-    mine_kommuner = [
-        "0301", # Hele Oslo fylke
-        "3201", "3203", "3205", "3207", "3209", "3212", 
-        "3214", "3216", "3218", "3220", "3222", "3224", 
-        "3226", "3228", "3230", "3232", "3234", "3236", 
-        "3238", "3240", "3242" # Hele Akershus fylke
-    ]
-    # 1. VI SNEVRER INN: Kun Oslo, og kun TOPP 40 selskaper for å teste!
+    
+    
     params = {
         "organisasjonsform": selskapsform,
         "naeringskode": "68.120",   
-        "kommunenummer": ",".join(mine_kommuner),    # Kun Oslo i testen
-        "size": 100,              
+        "kommunenummer": ",".join(kommuner),
+        "size": 100,
+        "konkurs": False, 
+        "underAvvikling": False,    
+        "underTvangsavviklingEllerTvangsopplosning": False,    
     }
         
     alle_rå_enheter = []
@@ -99,27 +126,32 @@ def potential_customers(selskapsform="AS"):
         gjeldende_side += 1
 
     interressante_kunder = []
-    MINSTE_OMSETNING = 10000000
+    MINSTE_OMSETNING = minste_omsetning
 
     total_enheter = len(alle_rå_enheter)
 
     for i, bedrift in enumerate(alle_rå_enheter, 1):
-            orgnr = bedrift.get("organisasjonsnummer")
             adresse = bedrift.get("forretningsadresse", {})
+            
+            if adresse.get('kommunenummer') not in kommuner:
+                continue    
+            orgnr = bedrift.get("organisasjonsnummer")
             gateadresse = ", ".join(adresse.get("adresse", []))
             navn = bedrift.get("navn", "Ukjent")
             
-
             print(f"[{i}/{total_enheter}] Sjekker: {navn}...", end="", flush=True)
 
             regnskapsdata = _hent_omsetning_fra_brreg(orgnr)
             omsetning = regnskapsdata["omsetning"]
             årstall = regnskapsdata["år"]
+            
+            if omsetning == 0:
+                continue
 
             if omsetning >= MINSTE_OMSETNING:
-                lat,lon = _geokode(adresse)
+                lat,lon = _koordinater(adresse)
                 
-                print(f" -> 🎉 MATCH! ({omsetning:,} kr)")
+                print(f" -> MATCH! ({omsetning:,} kr)")
                 leder_navn = hent_daglig_leder(orgnr)
 
                 interressante_kunder.append({
@@ -135,6 +167,8 @@ def potential_customers(selskapsform="AS"):
                     'lon': lon,
                 })
             else:
-                print(f" -> 📉 For lav/0 kr ({omsetning:,} kr)")
-
+                print(f" -> For lav/0 kr ({omsetning:,} kr)")
     return interressante_kunder
+
+
+

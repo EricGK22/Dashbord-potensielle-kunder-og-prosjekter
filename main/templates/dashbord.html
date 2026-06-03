@@ -57,12 +57,12 @@
     <!-- Knappen: kjører søket kun ved trykk (POST), ikke ved vanlig sidelast -->
     <form method="post"
           onsubmit="this.querySelector('button').disabled = true;
-                    this.querySelector('button').textContent = '⏳ Henter… dette kan ta litt tid';">
+                    this.querySelector('button').textContent = 'Henter… dette kan ta litt tid';">
         {% csrf_token %}
         <button type="submit"
                 style="background:#16a34a; color:white; border:none; padding:10px 18px;
-                       border-radius:6px; font-size:14px; font-weight:bold; cursor:pointer;
-                       margin-bottom:24px;">
+                    border-radius:6px; font-size:14px; font-weight:bold; cursor:pointer;
+                    margin-bottom:24px;">
             Hent potensielle kunder
         </button>
     </form>
@@ -91,7 +91,7 @@
                 <tr>
                     <td><strong>{{ kunde.navn }}</strong></td>
                     <td>{{ kunde.orgnr }}</td>
-                    <td>👤 {{ kunde.leder }}</td>
+                    <td> {{ kunde.leder }}</td>
                     <td>{{ kunde.adresse }}</td>
                     <td style="color: #16a34a; font-weight: bold;">
                         {{ kunde.omsetning }}
@@ -127,7 +127,7 @@
             const punkter = [];
             (kunder || []).forEach(k => {
                 if (k.lat == null || k.lon == null) return;   // hopp over de uten koordinater
-                const popup = `<strong>${k.navn}</strong><br>${k.adresse}<br>👤 ${k.leder}<br>💰 ${k.omsetning} (${k.aar})`;
+                const popup = `<strong>${k.navn}</strong><br>${k.adresse}<br> ${k.leder}<br> ${k.omsetning} (${k.aar})`;
                 L.marker([k.lat, k.lon]).addTo(map).bindPopup(popup);
                 punkter.push([k.lat, k.lon]);
             });
