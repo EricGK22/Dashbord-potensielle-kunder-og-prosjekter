@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prosjektsignaler</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f5f6f8;
+               color: #1f2937; margin: 0; padding: 32px 16px; }
+        .ramme { max-width: 1100px; margin: 0 auto; }
+        .tilbake { display: inline-block; margin-bottom: 16px; color: #2563eb;
+                   text-decoration: none; }
+        h1 { margin: 0 0 4px; font-size: 1.5rem; }
+        .undertekst { color: #6b7280; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; background: #fff;
+                border-radius: 12px; overflow: hidden;
+                box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+        th, td { text-align: left; padding: 12px 14px; }
+        th { background: #f9fafb; color: #6b7280; font-size: .8rem;
+             text-transform: uppercase; letter-spacing: .03em; }
+        tr + tr td { border-top: 1px solid #f0f1f3; }
+        td a { color: #1d4ed8; text-decoration: none; font-weight: 600; }
+        td a:hover { text-decoration: underline; }
+        .status { display: inline-block; padding: 3px 10px; border-radius: 999px;
+                  background: #eff6ff; color: #1d4ed8; font-size: .8rem;
+                  font-weight: 600; white-space: nowrap; }
+        .tom { background: #fff; border-radius: 12px; padding: 32px;
+               text-align: center; color: #6b7280;
+               box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    </style>
+</head>
+<body>
+<div class="ramme">
+    <a class="tilbake" href="/">&larr; Tilbake til søket</a>
+
+    <h1>Prosjektsignaler</h1>
+    <div class="undertekst">
+        Arealplaner og byggesaker under arbeid &middot; {{ scraper|length }} signaler
+    </div>
+
+    {% if scraper %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Dato</th>
+                    <th>Kommune</th>
+                    <th>Type</th>
+                    <th>Tittel</th>
+                    <th>Status</th>
+                    <th>Kilde</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in scraper %}
+                <tr>
+                    <td>{{ s.dato|default:"–" }}</td>
+                    <td>{{ s.kommune }}</td>
+                    <td>{{ s.type }}</td>
+                    <td>
+                        {% if s.lenke %}
+                            <a href="{{ s.lenke }}" target="_blank" rel="noopener">{{ s.tittel }}</a>
+                        {% else %}
+                            {{ s.tittel }}
+                        {% endif %}
+                    </td>
+                    <td><span class="status">{{ s.status|default:"–" }}</span></td>
+                    <td>{{ s.kilde }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="tom">
+            Ingen signaler ennå. Kjør <code>python manage.py oppdater_signaler</code> for å hente.
+        </div>
+    {% endif %}

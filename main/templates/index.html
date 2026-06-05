@@ -116,7 +116,13 @@
 </head>
 <body>
 
-    <h1>Potensielle kunder</h1>
+    <h1>Dashbord – potensielle kunder</h1>  
+    <p style="margin: 4px 0 20px;">
+        <a href="{% url 'signaler' %}"
+            style="color:#2563eb; text-decoration:none; font-weight:600;">
+                Planlagte prosjekter
+    </a>
+</p></h1>
 
     <!-- Søket kjøres kun ved trykk (POST), ikke ved vanlig sidelast -->
     <form method="post" id="sok-form"
@@ -125,7 +131,15 @@
         <div class="panel">
             <div class="panel-grid">
                 <div>
-                    <label for="kommune-select">Kommuner</label>
+                    <label for="fylke-select">Fylker</label>
+                    <select name="fylkesnummer" id="fylke-select" multiple size="6">
+                        {% for nr, navn in fylker.items %}
+                            <option value="{{ nr }}">{{ navn }} ({{ nr }})</option>
+                        {% endfor %}
+                    </select>
+                    <p class="hint">Velger du et fylke, tas alle kommunene i fylket med.</p>
+
+                    <label for="kommune-select" style="margin-top:14px;">Kommuner</label>
                     <input type="text" class="filter" id="kommune-filter"
                            placeholder="Skriv for å filtrere lista…" autocomplete="off">
                     <select name="kommunenummer" id="kommune-select" multiple size="12">
@@ -133,7 +147,7 @@
                             <option value="{{ nr }}">{{ navn }} ({{ nr }})</option>
                         {% endfor %}
                     </select>
-                    <p class="hint">Hold inne Ctrl (Cmd på Mac) for å velge flere. Ingen valg = standardområdet (Oslo + Akershus).</p>
+                    <p class="hint">Hold inne Ctrl (Cmd på Mac) for å velge flere. Du må velge minst ett fylke eller én kommune.</p>
                 </div>
 
                 <div>
@@ -144,16 +158,21 @@
                         <option value="ENK">ENK — Enkeltpersonforetak</option>
                         <option value="ANS">ANS — Ansvarlig selskap</option>
                         <option value="DA">DA — Delt ansvar</option>
+                        <option value="BBL">Boligbyggelag</option>
                     </select>
-                    <label for="minste-omsetning" style="margin-top:14px;">Minste omsetning (kr)</label>
-                    <input type="number" name="minste_omsetning" id="minste-omsetning" class="single"
-                           value="{{ minste_omsetning }}" min="0" step="100000">
+                    <label for="minste-eiendomsverdi" style="margin-top:14px;">Minste eiendomsverdi (kr)</label>
+                    <input type="number" name="minste_eiendomsverdi" id="minste-eiendomsverdi" class="single"
+                           value="{{ minste_eiendomsverdi }}" min="0" step="100000">
                     <p class="hint">Tomt eller ugyldig = 10&nbsp;000&nbsp;000.</p>
                     <button type="submit" class="go">Hent potensielle kunder</button>
                 </div>
             </div>
         </div>
     </form>
+
+    {% if feilmelding %}
+        <p style="color:#b91c1c; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:12px 16px; font-weight:600;">{{ feilmelding }}</p>
+    {% endif %}
 
     {% if kunder is not None %}
 
@@ -176,7 +195,7 @@
                     <th>Daglig leder</th>
                     <th>Kommune</th>
                     <th>Adresse</th>
-                    <th>Omsetning (år)</th>
+                    <th>Eiendomsverdi (år)</th>
                     <th>Nettside</th>
                 </tr>
             </thead>
@@ -194,7 +213,7 @@
                     <td>{{ kunde.kommune }}</td>
                     <td>{{ kunde.adresse }}</td>
                     <td style="color: #16a34a; font-weight: bold;">
-                        {{ kunde.omsetning }}
+                        {{ kunde.eiendomsverdi }}
                         <br>
                         <span style="color: #6b7280; font-size: 12px; font-weight: normal;">({{ kunde.aar }})</span>
                     </td>
@@ -251,7 +270,7 @@
             kunder.forEach(function (k) {
                 if (k.lat == null || k.lon == null) return;   // hopp over de uten koordinater
                 var popup = '<strong>' + k.navn + '</strong><br>' + k.adresse +
-                            '<br>' + k.leder + '<br>' + k.omsetning + ' (' + k.aar + ')';
+                            '<br>' + k.leder + '<br>' + k.eiendomsverdi + ' (' + k.aar + ')';
                 L.marker([k.lat, k.lon]).addTo(map).bindPopup(popup);
                 punkter.push([k.lat, k.lon]);
             });
