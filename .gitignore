@@ -17,3 +17,6 @@ env/
 # IDE
 .vscode/
 .idea/
+
+# Genererte data ( PDF-cache + eiendomsverdier)
+data/
