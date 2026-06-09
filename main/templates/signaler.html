@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prosjektsignaler</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { font-family: system-ui, -apple-system, sans-serif; background: #f5f6f8;
                color: #1f2937; margin: 0; padding: 32px 16px; }
@@ -11,7 +12,11 @@
         .tilbake { display: inline-block; margin-bottom: 16px; color: #2563eb;
                    text-decoration: none; }
         h1 { margin: 0 0 4px; font-size: 1.5rem; }
+        .faner { margin-bottom: 16px; }
+        .faner a { margin-right: 12px; color: #2563eb; text-decoration: none; }
         .undertekst { color: #6b7280; margin-bottom: 20px; }
+        #kart { height: 480px; border-radius: 12px; overflow: hidden;
+                margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
         table { width: 100%; border-collapse: collapse; background: #fff;
                 border-radius: 12px; overflow: hidden;
                 box-shadow: 0 1px 4px rgba(0,0,0,.08); }
@@ -31,14 +36,26 @@
 </head>
 <body>
 <div class="ramme">
-    <a class="tilbake" href="/">&larr; Tilbake til søket</a>
+    <a class="tilbake" href="/">&larr; Tilbake til soeket</a>
 
-    <h1>Prosjektsignaler</h1>
-    <div class="undertekst">
-        Arealplaner og byggesaker under arbeid &middot; {{ scraper|length }} signaler
+     <h1>Prosjektsignaler{% if valgt_kilde %} &ndash; {{ valgt_kilde }}{% endif %}</h1>
+
+    <div class="faner">
+        <a href="{% url 'signaler' %}"
+           style="font-weight:{% if not valgt_kilde %}700{% else %}400{% endif %};">Alle</a>
+        {% for k in kilder %}
+            <a href="{% url 'signaler_kilde' k %}"
+               style="font-weight:{% if valgt_kilde == k %}700{% else %}400{% endif %};">{{ k }}</a>
+        {% endfor %}
     </div>
 
-    {% if scraper %}
+    <div class="undertekst">
+        Arealplaner og byggesaker under arbeid &middot; {{ signaler|length }} signaler
+    </div>
+
+    <div id="kart"></div>
+
+    {% if signaler %}
         <table>
             <thead>
                 <tr>
@@ -48,12 +65,14 @@
                     <th>Tittel</th>
                     <th>Status</th>
                     <th>Kilde</th>
+                    <th>Firma</th>
+                    <th>Frist</th>
                 </tr>
             </thead>
             <tbody>
-                {% for s in scraper %}
+                {% for s in signaler %}
                 <tr>
-                    <td>{{ s.dato|default:"–" }}</td>
+                    <td>{{ s.dato|default:"&ndash;" }}</td>
                     <td>{{ s.kommune }}</td>
                     <td>{{ s.type }}</td>
                     <td>
@@ -63,14 +82,40 @@
                             {{ s.tittel }}
                         {% endif %}
                     </td>
-                    <td><span class="status">{{ s.status|default:"–" }}</span></td>
+                    <td><span class="status">{{ s.status|default:"&ndash;" }}</span></td>
                     <td>{{ s.kilde }}</td>
+                    <td>{{ s.part|default:"&ndash;" }}</td>
+                    <td>{{s.frist}}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
         <div class="tom">
-            Ingen signaler ennå. Kjør <code>python manage.py oppdater_signaler</code> for å hente.
+            Ingen signaler enn&aring;. Kj&oslash;r <code>python manage.py oppdater_signaler</code> for &aring; hente.
         </div>
     {% endif %}
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const kart = L.map("kart").setView([59.86, 10.45], 11);   // Asker/Baerum
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap",
+        maxZoom: 19,
+    }).addTo(kart);
+
+    const punkter = [
+      {% for s in signaler %}{% if s.lat and s.lon %}
+      {lat: {{ s.lat }}, lon: {{ s.lon }}, tittel: "{{ s.tittel|escapejs }}", part: "{{ s.part|escapejs }}", lenke: "{{ s.lenke|escapejs }}"},
+      {% endif %}{% endfor %}
+    ];
+
+    punkter.forEach(s => {
+        L.marker([s.lat, s.lon]).addTo(kart)
+         .bindPopup(`<b>${s.tittel}</b><br>${s.part || ""}<br><a href="${s.lenke}" target="_blank" rel="noopener">Aapne sak</a>`);
+    });
+</script>
+</body>
+</html>

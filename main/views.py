@@ -1,7 +1,9 @@
 from django.http import JsonResponse
+from django.http import HttpResponse
 from django.shortcuts import render
-from .services import _fylker, _kommuner, les_eiendomsverdi_cache, potential_customers
+from .services import _fylker, _kommuner, les_eiendomsverdi_cache, potential_customers, SESSION
 from main.models import Eiendomsverdi, ProsjektSignal
+import xml.etree.ElementTree as ET
 
 
 def index(request):
@@ -42,7 +44,14 @@ def eiendomsverdier_api(request):
     return JsonResponse(les_eiendomsverdi_cache())
 
 
-def signaler(request):
-    """Egen side: alle prosjektsignaler, nyeste først."""
+def signaler(request, kilde=None):
     alle = ProsjektSignal.objects.order_by("-dato")
-    return render(request, "signaler.html", {"scraper": alle})
+    if kilde:
+        alle = alle.filter(kilde=kilde)
+    kilder = (ProsjektSignal.objects.exclude(kilde="").values_list("kilde", flat=True).distinct().order_by("kilde"))
+    return render(request, "signaler.html", {
+        "signaler": alle,
+        "valgt_kilde": kilde,
+        "kilder": kilder,
+    })
+    
