@@ -29,10 +29,11 @@ class ProsjektSignal(models.Model):
     dato = models.DateField(null=True, blank=True)
     lenke = models.URLField(max_length=300, blank=True)
     oppdaget = models.DateField(auto_now_add=True)
-    part = models.CharField(max_length=200, blank=True)
+    part = models.CharField(max_length=800, blank=True)
     matrikkel = models.CharField(blank=True)
     lat = models.FloatField(null = True, blank=True)
     lon = models.FloatField(null=True,blank=True)
+    frist = models.DateField(null=True, blank=True)
     
     class Meta:
         constraints = [
