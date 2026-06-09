@@ -23,12 +23,16 @@ class ProsjektSignal(models.Model):
     kilde = models.CharField(max_length=50)
     kommune = models.CharField(max_length=50)
     type = models.CharField(max_length=80)
-    referanse = models.CharField(max_length=50)
+    referanse = models.CharField(max_length=200)
     tittel = models.CharField(max_length=300)
     status = models.CharField(max_length=100, blank=True)
     dato = models.DateField(null=True, blank=True)
     lenke = models.URLField(max_length=300, blank=True)
     oppdaget = models.DateField(auto_now_add=True)
+    part = models.CharField(max_length=200, blank=True)
+    matrikkel = models.CharField(blank=True)
+    lat = models.FloatField(null = True, blank=True)
+    lon = models.FloatField(null=True,blank=True)
     
     class Meta:
         constraints = [
