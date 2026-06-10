@@ -37,6 +37,7 @@
 <body>
 <div class="ramme">
     <a class="tilbake" href="/">&larr; Tilbake til soeket</a>
+    <a href="{% url 'kommentarer' %}">Mine kommentarer</a>
 
      <h1>Prosjektsignaler{% if valgt_kilde %} &ndash; {{ valgt_kilde }}{% endif %}</h1>
 
@@ -67,11 +68,13 @@
                     <th>Kilde</th>
                     <th>Firma</th>
                     <th>Frist</th>
+                    <th>Kommentarer</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for s in signaler %}
-                <tr>
+                <tr {% if s.er_avvist %}style="opacity:0.4;"{% endif %}>
                     <td>{{ s.dato|default:"&ndash;" }}</td>
                     <td>{{ s.kommune }}</td>
                     <td>{{ s.type }}</td>
@@ -85,7 +88,23 @@
                     <td><span class="status">{{ s.status|default:"&ndash;" }}</span></td>
                     <td>{{ s.kilde }}</td>
                     <td>{{ s.part|default:"&ndash;" }}</td>
-                    <td>{{s.frist}}</td>
+                    <td>{{ s.frist|default:"&ndash;" }}</td>
+                    <td>
+                        {% for k in s.kommentarer.all %}
+                            <div><small><b>{{ k.bruker.username }}:</b> {{ k.tekst }}</small></div>
+                        {% endfor %}
+                        <form method="post" action="{% url 'legg_til_kommentar' s.id %}">
+                            {% csrf_token %}
+                            <input type="text" name="tekst" placeholder="Ny kommentar">
+                            <button type="submit">Lagre</button>
+                        </form>
+                    </td>
+                    <td>
+                        <form method="post" action="{% url 'toggle_avvist' s.id %}">
+                            {% csrf_token %}
+                            <button type="submit">{% if s.er_avvist %}Angre{% else %}Kryss ut{% endif %}</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -107,7 +126,7 @@
     }).addTo(kart);
 
     const punkter = [
-      {% for s in signaler %}{% if s.lat and s.lon %}
+      {% for s in signaler %}{% if s.lat and s.lon and not s.er_avvist %}
       {lat: {{ s.lat }}, lon: {{ s.lon }}, tittel: "{{ s.tittel|escapejs }}", part: "{{ s.part|escapejs }}", lenke: "{{ s.lenke|escapejs }}"},
       {% endif %}{% endfor %}
     ];

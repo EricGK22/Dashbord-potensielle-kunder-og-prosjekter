@@ -1,9 +1,12 @@
 from django.http import JsonResponse
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
 from .services import _fylker, _kommuner, les_eiendomsverdi_cache, potential_customers, SESSION
-from main.models import Eiendomsverdi, ProsjektSignal
+from django.contrib.auth.decorators import login_required
 import xml.etree.ElementTree as ET
+from .models import ProsjektSignal, SignalStatus, Kommentar, Eiendomsverdi
+
+
 
 
 def index(request):
@@ -44,10 +47,17 @@ def eiendomsverdier_api(request):
     return JsonResponse(les_eiendomsverdi_cache())
 
 
+@login_required
 def signaler(request, kilde=None):
     alle = ProsjektSignal.objects.order_by("-dato")
     if kilde:
         alle = alle.filter(kilde=kilde)
+    alle = list(alle)
+    avviste_ids = set(
+        SignalStatus.objects.filter(bruker= request.user, avvist = True).values_list("signal_id", flat=True)
+    )
+    for s in alle:
+        s.er_avvist = s.id in avviste_ids
     kilder = (ProsjektSignal.objects.exclude(kilde="").values_list("kilde", flat=True).distinct().order_by("kilde"))
     return render(request, "signaler.html", {
         "signaler": alle,
@@ -55,3 +65,34 @@ def signaler(request, kilde=None):
         "kilder": kilder,
     })
     
+
+@login_required
+def toggle_avvist(request, signal_id):
+    signal = get_object_or_404(ProsjektSignal, id=signal_id)
+    status, _ = SignalStatus.objects.get_or_create(bruker=request.user, signal=signal)
+    status.avvist = not status.avvist
+    status.save()
+    return redirect(request.META.get("HTTP_REFERER") or "signaler")
+
+@login_required
+def legg_til_kommentar(request, signal_id):
+    if request.method == "POST":
+        tekst = (request.POST.get("tekst") or "").strip()
+        if tekst:
+            signal = get_object_or_404(ProsjektSignal, id=signal_id)
+            Kommentar.objects.create(signal = signal, bruker = request.user, tekst = tekst)
+    return redirect(request.META.get("HTTP_REFERER") or "signaler")
+
+
+@login_required
+def kommentarer(request, visning="mine"):
+    qs = (Kommentar.objects.select_related("signal", "bruker").order_by("-opprettet"))
+    if visning == True:
+        qs = qs.filter(bruker=request.user)
+    return render(request, "kommentarer.html", {"kommentarer": qs, "visning": visning})
+
+@login_required
+def slett_kommentar(request, kommentar_id):
+    k = get_object_or_404(Kommentar, id=kommentar_id, bruker=request.user)
+    k.delete()
+    return redirect(request.META.get("HTTP_REFERER" or "kommentarer"))
