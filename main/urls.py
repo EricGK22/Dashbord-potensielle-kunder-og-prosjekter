@@ -11,4 +11,6 @@ urlpatterns = [
     path("kommentarer/", views.kommentarer, name="kommentarer"),
     path("kommentarer/alle/", views.kommentarer, {"visning": "alle"}, name="kommentarer_alle"),
     path("kommentar/<int:kommentar_id>/slett/", views.slett_kommentar, name="slett_kommentar"),
+    path("kjor/oppdater/", views.kjor_oppdater, name="kjor_oppdater"),
+    path("kjor/geokod/", views.kjor_geokod, name="kjor_geokod"),
 ]

@@ -5,6 +5,7 @@ from .services import _fylker, _kommuner, les_eiendomsverdi_cache, potential_cus
 from django.contrib.auth.decorators import login_required
 import xml.etree.ElementTree as ET
 from .models import ProsjektSignal, SignalStatus, Kommentar, Eiendomsverdi
+from django.core.management import call_command
 
 
 
@@ -47,9 +48,9 @@ def eiendomsverdier_api(request):
     return JsonResponse(les_eiendomsverdi_cache())
 
 
-@login_required
+# @login_required
 def signaler(request, kilde=None):
-    alle = ProsjektSignal.objects.order_by("-dato")
+    alle = (ProsjektSignal.objects.order_by("-dato").prefetch_related("kommentar__bruker"))
     if kilde:
         alle = alle.filter(kilde=kilde)
     alle = list(alle)
@@ -58,6 +59,9 @@ def signaler(request, kilde=None):
     )
     for s in alle:
         s.er_avvist = s.id in avviste_ids
+        brukere = {k.bruker_id for k in s.kommentar.all()}
+        s.kommentert_av_meg = request.user.id in brukere
+        s.kommentert_av_andre = bool(brukere - {request.user.id})
     kilder = (ProsjektSignal.objects.exclude(kilde="").values_list("kilde", flat=True).distinct().order_by("kilde"))
     return render(request, "signaler.html", {
         "signaler": alle,
@@ -87,7 +91,7 @@ def legg_til_kommentar(request, signal_id):
 @login_required
 def kommentarer(request, visning="mine"):
     qs = (Kommentar.objects.select_related("signal", "bruker").order_by("-opprettet"))
-    if visning == True:
+    if visning == "mine":
         qs = qs.filter(bruker=request.user)
     return render(request, "kommentarer.html", {"kommentarer": qs, "visning": visning})
 
@@ -96,3 +100,14 @@ def slett_kommentar(request, kommentar_id):
     k = get_object_or_404(Kommentar, id=kommentar_id, bruker=request.user)
     k.delete()
     return redirect(request.META.get("HTTP_REFERER" or "kommentarer"))
+@login_required
+def kjor_oppdater(request):
+    if request.method == "POST":
+        call_command("oppdater_signaler")
+    return redirect(request.META.get("HTTP_REFERER") or "signaler")
+
+@login_required
+def kjor_geokod(request):
+    if request.method == "POST":
+        call_command("geokod_signaler")
+    return redirect(request.META.get("HTTP_REFERER") or "signaler")
