@@ -30,7 +30,7 @@ def _norsk_dato(s):
         return None
     
 
-def _hent_byggesaker_baerum(fra_dato="2026-01-01", sok="ramme", maks_sider = 150):
+def _hent_byggesaker_baerum(fra_dato="2026-01-01", sok="regulering", maks_sider = 150):
     oppslag = []
     s = requests.Session()
     s.get(BAERUM_PAGE, headers={"user-agent": BAERUM_HEADERS["user-agent"]}, timeout= 20)

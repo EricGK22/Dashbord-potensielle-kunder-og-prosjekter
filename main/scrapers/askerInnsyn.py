@@ -109,7 +109,7 @@ fragment JournalResult on Journal {
 }"""
 
 
-def _hent_byggesaker_asker(sok="ramme", fra_dato="2026-01-01", limit=50):
+def _hent_byggesaker_asker(sok="regulering", fra_dato="2026-01-01", limit=50):
     oppslag, offset = [],0
     
     while True:
