@@ -32,8 +32,6 @@
     .kildevalg input { accent-color: var(--primar); cursor: pointer; }
     .kildevalg .prikk { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 
-    .verktoy { margin-left: auto; display: flex; gap: 8px; }
-
     /* Rader */
     tr.fjernet-rad td { opacity: .45; }
     tr.fjernet-rad td:last-child, tr.fjernet-rad td.komm-celle { opacity: 1; }
@@ -105,17 +103,6 @@
                 {{ k }}
             </label>
             {% endfor %}
-        </div>
-
-        <div class="verktoy">
-            <form method="post" action="{% url 'kjor_oppdater' %}">
-                {% csrf_token %}
-                <button type="submit" class="knapp sekundar liten">Hent nye signaler</button>
-            </form>
-            <form method="post" action="{% url 'kjor_geokod' %}">
-                {% csrf_token %}
-                <button type="submit" class="knapp sekundar liten">Geokod</button>
-            </form>
         </div>
     </div>
 
@@ -220,8 +207,8 @@
     </div>
     {% else %}
         <div class="kort tom">
-            Ingen signaler enn&aring;. Trykk p&aring; <b>Hent nye signaler</b> eller kj&oslash;r
-            <code>python manage.py oppdater_signaler</code>.
+            Ingen signaler enn&aring;. Signaler hentes automatisk (tirsdag og torsdag),
+            eller du kan kj&oslash;re <code>python manage.py oppdater_signaler</code> manuelt.
         </div>
     {% endif %}
 {% endblock %}
