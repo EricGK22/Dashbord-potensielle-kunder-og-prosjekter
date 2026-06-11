@@ -48,7 +48,7 @@ def eiendomsverdier_api(request):
     return JsonResponse(les_eiendomsverdi_cache())
 
 
-# @login_required
+@login_required
 def signaler(request, kilde=None):
     alle = (ProsjektSignal.objects.order_by("-dato").prefetch_related("kommentar__bruker"))
     if kilde:
