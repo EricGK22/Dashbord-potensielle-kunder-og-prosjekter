@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from main.models import ProsjektSignal
-from main.scraper import (_geokod_matrikkel, _adresse_fra_tittel, _geokod_adresse, _geokod_sted)
+from main.scrapers.stedsFinner import (_geokod_matrikkel, _adresse_fra_tittel, _geokod_adresse, _geokod_sted)
 import time
 
 KOMMUNENR = {"Asker": "3203", "Bærum": "3201", "Oslo": "0301"}
@@ -15,7 +15,7 @@ class Command(BaseCommand):
         antall = 0
         for i,s in enumerate(rader, start =1):
             lat = lon = None
-
+            term = ""
             if s.matrikkel:                                 
                 lat, lon = _geokod_matrikkel(s.kommune, s.matrikkel)
 

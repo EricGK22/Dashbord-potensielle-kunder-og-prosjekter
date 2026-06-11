@@ -1,10 +1,25 @@
 from django.core.management.base import BaseCommand
 
 from main.models import ProsjektSignal
-from main.scraper import KILDER
+from main.scrapers.arealplaner import _hent_arealplaner
+from main.scrapers.askerInnsyn import _hent_byggesaker_asker
+from main.scrapers.baerumInnsyn import _hent_byggesaker_baerum
+from main.scrapers.doffin import _hent_doffin
 
+
+# Kommando for sletting av oppslag:
+# python manage.py shell -c "from main.models import ProsjektSignal as P; from main.scrapers.filter import _er_relevant; ider=[s.id for s in P.objects.all() if not _er_relevant(s.tittel)]; n,_=P.objects.filter(id__in=ider).delete(); print('slettet', n)"
+
+
+KILDER = [
+    lambda: _hent_arealplaner("asker3203", "Asker"),
+    lambda: _hent_arealplaner("baerum3201", "Bærum"),
+    _hent_byggesaker_asker,
+    _hent_byggesaker_baerum,
+    _hent_doffin,
+]
 class Command(BaseCommand):
-    help = "Henter prosjektsignaler fra alle kilder i scraper.py"
+    help = "Henter prosjektsignaler fra alle webscraperne i scrapers-mappen"
     
     def handle(self, *args, **opt):
         nye = 0
