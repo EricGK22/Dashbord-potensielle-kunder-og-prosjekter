@@ -6,3 +6,9 @@ $env:DB_PASSWORD="Erickjoerstad#"
 - Starte nettsiden, lim inn følgende i terminalen
 py manage.py runserver
 ------------------------------------------------
+- Sjekke at man har satt Anthropic key
+echo $env:ANTHROPIC_API_KEY
+--> Gir den tom er ingenting satt
+--------------------------------
+-Sette Anthropic API-key
+$env:ANTHROPIC_API_KEY = "LIM INN NØKKEL INNI HER"
