@@ -185,36 +185,6 @@ def _hent_eiendoms_verdi(orgnr,aar,kun_cache=False):
     except Exception as e:
         print(f"Eiendomsverdi feilet for {orgnr}: {e}")
         return None
-        
-
-    
-    
-# def _hent_omsetning_fra_brreg(orgnr):
-#     url = f"https://data.brreg.no/regnskapsregisteret/regnskap/{orgnr}"
-#     try:
-#         response = SESSION.get(url, timeout=10)
-#         if response.status_code == 200:
-#             regnskaper = response.json()
-#             if regnskaper and len(regnskaper) > 0:
-#                 # Riktig toppnøkkel er "resultatregnskapResultat", og omsetningen
-#                 # ligger nøstet under driftsresultat -> driftsinntekter.
-#                 res = regnskaper[0].get("resultatregnskapResultat", {})
-#                 drift = res.get("driftsresultat", {}).get("driftsinntekter", {})
-
-#                 # Sum driftsinntekter er det vi vil ha for eiendom (leieinntekter).
-#                 # Faller tilbake på salgsinntekter, og til slutt finansinntekt
-#                 # (relevant for rene holding-/investeringsselskap).
-#                 omsetning = drift.get("sumDriftsinntekter", 0) or drift.get("salgsinntekter", 0)
-#                 if not omsetning:
-#                     omsetning = res.get("finansresultat", {}).get("finansinntekt", {}).get("sumFinansinntekter", 0)
-
-#                 # Årstallet utledes fra regnskapsperiode.tilDato ("2023-12-31" -> "2023")
-#                 år = regnskaper[0].get("regnskapsperiode", {}).get("tilDato", "")[:4]
-#                 return {"omsetning": int(omsetning), "år": år or "Ukjent"}
-#         return {"omsetning": 0, "år": "Ingen tall"}
-#     except:
-#         return {"omsetning": 0, "år": "Timeout/Feil"}
-
 
 #---------------------------------------Kart funksjoner----------------------------------------------------------
 
