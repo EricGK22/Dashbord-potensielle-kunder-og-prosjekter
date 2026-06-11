@@ -1,56 +1,57 @@
-<!DOCTYPE html>
-<html lang="no">
-<head>
-    <meta charset="UTF-8">
-    <title>Kommentarer</title>
-    <style>
-        body { font-family: system-ui, sans-serif; background:#f5f6f8; color:#1f2937; padding:32px 16px; }
-        .ramme { max-width:1000px; margin:0 auto; }
-        a.tilbake { color:#2563eb; text-decoration:none; }
-        .faner { margin:16px 0; }
-        .faner a { margin-right:14px; color:#2563eb; text-decoration:none; }
-        table { width:100%; border-collapse:collapse; background:#fff; border-radius:12px;
-                overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.08); }
-        th,td { text-align:left; padding:12px 14px; }
-        th { background:#f9fafb; color:#6b7280; font-size:.8rem; text-transform:uppercase; }
-        tr + tr td { border-top:1px solid #f0f1f3; }
-        td a { color:#1d4ed8; text-decoration:none; font-weight:600; }
-        button { cursor:pointer; }
-    </style>
-</head>
-<body>
-<div class="ramme">
-    <a class="tilbake" href="/">&larr; Tilbake</a>
+{% extends "base.html" %}
+
+{% block tittel %}Kommentarer{% endblock %}
+
+{% block ekstra_css %}
+<style>
+    .faner { display: flex; gap: 8px; margin-bottom: 18px; }
+    .faner a {
+        text-decoration: none; color: var(--tekst); font-weight: 600; font-size: 13px;
+        border: 1px solid #d1d5db; background: #fff; border-radius: 999px; padding: 6px 14px;
+    }
+    .faner a:hover { background: #f3f4f6; }
+    .faner a.aktiv { background: var(--primar); border-color: var(--primar); color: #fff; }
+</style>
+{% endblock %}
+
+{% block innhold %}
     <h1>Kommentarer</h1>
+    <p class="undertekst">Alle kommentarer som er lagt p&aring; signalposter.</p>
 
     <div class="faner">
-        <a href="{% url 'kommentarer' %}"
-           style="font-weight:{% if visning == 'mine' %}700{% else %}400{% endif %};">Mine kommentarer</a>
-        <a href="{% url 'kommentarer_alle' %}"
-           style="font-weight:{% if visning == 'alle' %}700{% else %}400{% endif %};">Alle kommentarer</a>
+        <a href="{% url 'kommentarer' %}" class="{% if visning == 'mine' %}aktiv{% endif %}">Mine kommentarer</a>
+        <a href="{% url 'kommentarer_alle' %}" class="{% if visning == 'alle' %}aktiv{% endif %}">Alle kommentarer</a>
     </div>
 
     {% if kommentarer %}
-        <table>
+    <div class="kort">
+        <table class="data">
             <thead>
-                <tr><th>Dato</th><th>Forfatter</th><th>Signal</th><th>Kommentar</th><th></th></tr>
+                <tr>
+                    <th>Dato</th>
+                    <th>Forfatter</th>
+                    <th>Signal</th>
+                    <th>Kommentar</th>
+                    <th></th>
+                </tr>
             </thead>
             <tbody>
                 {% for k in kommentarer %}
                 <tr>
-                    <td>{{ k.opprettet|date:"d.m.Y H:i" }}</td>
-                    <td>{{ k.bruker.username }}</td>
+                    <td style="white-space:nowrap;">{{ k.opprettet|date:"d.m.Y H:i" }}</td>
+                    <td><span class="merke {% if k.bruker == user %}gronn{% else %}gra{% endif %}">{{ k.bruker.username|default:"slettet bruker" }}</span></td>
                     <td>
                         {% if k.signal.lenke %}
                             <a href="{{ k.signal.lenke }}" target="_blank" rel="noopener">{{ k.signal.tittel }}</a>
                         {% else %}{{ k.signal.tittel }}{% endif %}
+                        <div style="color:var(--dempet); font-size:12px;">{{ k.signal.kommune }} &middot; {{ k.signal.kilde }}</div>
                     </td>
                     <td>{{ k.tekst }}</td>
                     <td>
                         {% if k.bruker == user %}
                         <form method="post" action="{% url 'slett_kommentar' k.id %}">
                             {% csrf_token %}
-                            <button type="submit">Slett</button>
+                            <button type="submit" class="knapp fare liten">Slett</button>
                         </form>
                         {% endif %}
                     </td>
@@ -58,9 +59,8 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
     {% else %}
-        <p>Ingen kommentarer ennå.</p>
+        <div class="kort tom">Ingen kommentarer enn&aring;.</div>
     {% endif %}
-</div>
-</body>
-</html>
+{% endblock %}

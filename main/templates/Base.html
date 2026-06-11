@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block tittel %}Dashbord{% endblock %}</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --bg: #f4f5f7;
+            --flate: #ffffff;
+            --kant: #e5e7eb;
+            --tekst: #111827;
+            --dempet: #6b7280;
+            --primar: #2563eb;
+            --primar-mork: #1d4ed8;
+            --gronn: #16a34a;
+            --rod: #dc2626;
+            --gul: #d97706;
+            --skygge: 0 1px 3px rgba(0,0,0,.07);
+            --radius: 10px;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--tekst);
+            font-size: 14px;
+        }
+
+        /* ---------- Toppmeny ---------- */
+        .toppmeny {
+            background: #0f172a;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 0 24px;
+            height: 56px;
+            position: sticky;
+            top: 0;
+            z-index: 1100;
+        }
+        .toppmeny .logo {
+            font-weight: 700;
+            font-size: 15px;
+            color: #fff;
+            text-decoration: none;
+            letter-spacing: .02em;
+        }
+        .toppmeny nav { display: flex; gap: 4px; flex: 1; }
+        .toppmeny nav a {
+            color: #cbd5e1;
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .toppmeny nav a:hover { background: #1e293b; color: #fff; }
+        .toppmeny nav a.aktiv { background: #1e293b; color: #fff; }
+        .toppmeny .bruker { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #94a3b8; }
+        .toppmeny .bruker b { color: #e2e8f0; }
+        .toppmeny .bruker button {
+            background: transparent; color: #cbd5e1; border: 1px solid #334155;
+            padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px;
+        }
+        .toppmeny .bruker button:hover { background: #1e293b; color: #fff; }
+
+        /* ---------- Layout ---------- */
+        .ramme { max-width: 1200px; margin: 0 auto; padding: 28px 24px 64px; }
+        h1 { font-size: 22px; margin: 0 0 4px; }
+        .undertekst { color: var(--dempet); margin: 0 0 20px; }
+
+        .kort {
+            background: var(--flate);
+            border: 1px solid var(--kant);
+            border-radius: var(--radius);
+            box-shadow: var(--skygge);
+        }
+        .kort.pad { padding: 20px; }
+
+        /* ---------- Skjema ---------- */
+        label {
+            display: block; font-size: 12px; text-transform: uppercase;
+            letter-spacing: .04em; color: var(--dempet); margin-bottom: 6px; font-weight: 600;
+        }
+        input[type="text"], input[type="number"], input[type="password"], select {
+            width: 100%; padding: 9px 11px; border: 1px solid #d1d5db;
+            border-radius: 8px; font-size: 14px; background: #fff; color: var(--tekst);
+        }
+        input:focus, select:focus { outline: 2px solid #bfdbfe; border-color: var(--primar); }
+        .hint { font-size: 12px; color: #9ca3af; margin-top: 6px; }
+
+        .knapp {
+            display: inline-block; border: none; border-radius: 8px; cursor: pointer;
+            font-size: 14px; font-weight: 600; padding: 9px 16px;
+            background: var(--primar); color: #fff;
+        }
+        .knapp:hover { background: var(--primar-mork); }
+        .knapp.gronn { background: var(--gronn); }
+        .knapp.gronn:hover { background: #15803d; }
+        .knapp.sekundar { background: #fff; color: var(--tekst); border: 1px solid #d1d5db; }
+        .knapp.sekundar:hover { background: #f3f4f6; }
+        .knapp.liten { padding: 5px 10px; font-size: 12px; }
+        .knapp.fare { background: #fff; color: var(--rod); border: 1px solid #fecaca; }
+        .knapp.fare:hover { background: #fef2f2; }
+        .knapp:disabled { background: #9ca3af; cursor: default; }
+
+        /* ---------- Tabeller ---------- */
+        table.data { width: 100%; border-collapse: collapse; }
+        table.data th, table.data td { text-align: left; padding: 11px 14px; vertical-align: top; }
+        table.data thead th {
+            background: #f9fafb; color: var(--dempet); font-size: 11px;
+            text-transform: uppercase; letter-spacing: .04em;
+            border-bottom: 1px solid var(--kant); white-space: nowrap;
+        }
+        table.data tbody tr + tr td { border-top: 1px solid #f1f2f4; }
+        table.data tbody tr:hover { background: #fafbfc; }
+        table.data a { color: var(--primar-mork); text-decoration: none; font-weight: 600; }
+        table.data a:hover { text-decoration: underline; }
+
+        /* ---------- Småting ---------- */
+        .merke {
+            display: inline-block; padding: 3px 9px; border-radius: 999px;
+            font-size: 11px; font-weight: 600; white-space: nowrap;
+        }
+        .merke.bla   { background: #eff6ff; color: var(--primar-mork); }
+        .merke.gra   { background: #f3f4f6; color: var(--dempet); }
+        .merke.gul   { background: #fffbeb; color: var(--gul); }
+        .merke.rod   { background: #fef2f2; color: var(--rod); }
+        .merke.gronn { background: #f0fdf4; color: var(--gronn); }
+
+        .tom {
+            padding: 40px; text-align: center; color: var(--dempet);
+        }
+        .feil {
+            color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca;
+            border-radius: 8px; padding: 12px 16px; font-weight: 600; margin-bottom: 20px;
+        }
+        #kart, #map { height: 480px; border-radius: var(--radius); border: 1px solid var(--kant); margin-bottom: 24px; }
+    </style>
+    {% block ekstra_css %}{% endblock %}
+</head>
+<body>
+
+<header class="toppmeny">
+    <a class="logo" href="/">Prosjektdashbord</a>
+    <nav>
+        <a href="{% url 'index' %}" class="{% if aktiv_side == 'selskap' %}aktiv{% endif %}">Selskap</a>
+        <a href="{% url 'signaler' %}" class="{% if aktiv_side == 'signaler' %}aktiv{% endif %}">Signalposter</a>
+        <a href="{% url 'kommentarer' %}" class="{% if aktiv_side == 'kommentarer' %}aktiv{% endif %}">Kommentarer</a>
+    </nav>
+    <div class="bruker">
+        {% if user.is_authenticated %}
+            <span>Logget inn som <b>{{ user.username }}</b></span>
+            <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit">Logg ut</button>
+            </form>
+        {% else %}
+            <a href="{% url 'login' %}" style="color:#cbd5e1;">Logg inn</a>
+        {% endif %}
+    </div>
+</header>
+
+<div class="ramme">
+    {% block innhold %}{% endblock %}
+</div>
+
+{% block skript %}{% endblock %}
+</body>
+</html>

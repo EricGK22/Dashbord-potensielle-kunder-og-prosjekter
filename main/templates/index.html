@@ -1,134 +1,29 @@
-<!DOCTYPE html>
-<html lang="no">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Potensielle kunder</title>
+{% extends "base.html" %}
 
-    <!-- Leaflet (kart) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% block tittel %}Selskap &ndash; potensielle kunder{% endblock %}
 
-    <style>
-        body {
-            font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 24px;
-            color: #111827;
-            background: #f9fafb;
-        }
-        h1 { font-size: 22px; margin: 0 0 16px; }
+{% block ekstra_css %}
+<style>
+    .panel-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 28px; align-items: start; }
+    @media (max-width: 760px) { .panel-grid { grid-template-columns: 1fr; } }
+    select[multiple] {
+        width: 100%; border: 1px solid #d1d5db; border-radius: 8px;
+        font-size: 14px; padding: 4px;
+    }
+    select[multiple] option { padding: 4px 7px; border-radius: 4px; }
+    .results-head { display: flex; justify-content: space-between; align-items: baseline; margin: 28px 0 14px; }
+    .count { font-size: 13px; color: var(--dempet); background: #eef0f3; padding: 4px 12px; border-radius: 999px; }
+</style>
+{% endblock %}
 
-        /* Søkepanel */
-        .panel {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 24px;
-        }
-        .panel-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 24px;
-            align-items: start;
-        }
-        @media (max-width: 700px) { .panel-grid { grid-template-columns: 1fr; } }
+{% block innhold %}
+    <h1>Selskap</h1>
+    <p class="undertekst">S&oslash;k etter potensielle kunder basert p&aring; kommune, selskapsform og eiendomsverdi.</p>
 
-        label {
-            display: block;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: .03em;
-            color: #6b7280;
-            margin-bottom: 6px;
-        }
-        input.filter, select.single {
-            width: 100%;
-            padding: 9px 11px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 14px;
-            box-sizing: border-box;
-            background: white;
-            color: #111827;
-        }
-        input.filter { margin-bottom: 6px; }
-        select[multiple] {
-            width: 100%;
-            box-sizing: border-box;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 14px;
-            padding: 4px;
-        }
-        select[multiple] option { padding: 4px 6px; }
-        .hint { font-size: 12px; color: #9ca3af; margin-top: 6px; }
-
-        button.go {
-            background: #16a34a; color: white; border: none;
-            padding: 11px 18px; border-radius: 6px;
-            font-size: 14px; font-weight: bold; cursor: pointer;
-            width: 100%; margin-top: 14px;
-        }
-        button.go:disabled { background: #9ca3af; cursor: default; }
-
-        /* Resultater */
-        .results-head {
-            display: flex; justify-content: space-between; align-items: baseline;
-            margin: 0 0 14px;
-        }
-        .count {
-            font-size: 13px; color: #6b7280;
-            background: #f3f4f6; padding: 4px 10px; border-radius: 999px;
-        }
-        #map {
-            height: 500px;
-            border-radius: 8px;
-            margin-bottom: 24px;
-            border: 1px solid #e5e7eb;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        th, td {
-            text-align: left;
-            padding: 10px 14px;
-            border-bottom: 1px solid #f1f1f1;
-            font-size: 14px;
-            vertical-align: top;
-        }
-        thead th {
-            background: #f3f4f6;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: .03em;
-            color: #6b7280;
-        }
-        tbody tr:hover { background: #fafafa; }
-        a { color: #2563eb; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
-
-    <h1>Dashbord – potensielle kunder</h1>  
-    <p style="margin: 4px 0 20px;">
-        <a href="{% url 'signaler' %}"
-            style="color:#2563eb; text-decoration:none; font-weight:600;">
-                Planlagte prosjekter
-    </a>
-</p></h1>
-
-    <!-- Søket kjøres kun ved trykk (POST), ikke ved vanlig sidelast -->
     <form method="post" id="sok-form"
-          onsubmit="var b=this.querySelector('button.go'); b.disabled=true; b.textContent='⏳ Henter… dette kan ta litt tid';">
+          onsubmit="var b=this.querySelector('button.go'); b.disabled=true; b.textContent='Henter\u2026 dette kan ta litt tid';">
         {% csrf_token %}
-        <div class="panel">
+        <div class="kort pad">
             <div class="panel-grid">
                 <div>
                     <label for="fylke-select">Fylker</label>
@@ -139,145 +34,139 @@
                     </select>
                     <p class="hint">Velger du et fylke, tas alle kommunene i fylket med.</p>
 
-                    <label for="kommune-select" style="margin-top:14px;">Kommuner</label>
-                    <input type="text" class="filter" id="kommune-filter"
-                           placeholder="Skriv for å filtrere lista…" autocomplete="off">
+                    <label for="kommune-select" style="margin-top:16px;">Kommuner</label>
+                    <input type="text" id="kommune-filter" placeholder="Skriv for &aring; filtrere lista&hellip;"
+                           autocomplete="off" style="margin-bottom:6px;">
                     <select name="kommunenummer" id="kommune-select" multiple size="12">
                         {% for nr, navn in kommuner.items %}
                             <option value="{{ nr }}">{{ navn }} ({{ nr }})</option>
                         {% endfor %}
                     </select>
-                    <p class="hint">Hold inne Ctrl (Cmd på Mac) for å velge flere. Du må velge minst ett fylke eller én kommune.</p>
+                    <p class="hint">Hold inne Ctrl (Cmd p&aring; Mac) for &aring; velge flere. Velg minst ett fylke eller &eacute;n kommune.</p>
                 </div>
 
                 <div>
                     <label for="orgform">Organisasjonsform</label>
-                    <select name="organisasjonsform" id="orgform" class="single">
-                        <option value="AS" selected>AS — Aksjeselskap</option>
-                        <option value="ASA">ASA — Allmennaksjeselskap</option>
-                        <option value="ENK">ENK — Enkeltpersonforetak</option>
-                        <option value="ANS">ANS — Ansvarlig selskap</option>
-                        <option value="DA">DA — Delt ansvar</option>
-                        <option value="BBL">BBL — Boligbyggelag</option>
+                    <select name="organisasjonsform" id="orgform">
+                        <option value="AS" selected>AS &mdash; Aksjeselskap</option>
+                        <option value="ASA">ASA &mdash; Allmennaksjeselskap</option>
+                        <option value="ENK">ENK &mdash; Enkeltpersonforetak</option>
+                        <option value="ANS">ANS &mdash; Ansvarlig selskap</option>
+                        <option value="DA">DA &mdash; Delt ansvar</option>
+                        <option value="BBL">BBL &mdash; Boligbyggelag</option>
                     </select>
-                    <label for="minste-eiendomsverdi" style="margin-top:14px;">Minste eiendomsverdi (kr)</label>
-                    <input type="number" name="minste_eiendomsverdi" id="minste-eiendomsverdi" class="single"
+
+                    <label for="minste-eiendomsverdi" style="margin-top:16px;">Minste eiendomsverdi (kr)</label>
+                    <input type="number" name="minste_eiendomsverdi" id="minste-eiendomsverdi"
                            value="{{ minste_eiendomsverdi }}" min="0" step="100000">
                     <p class="hint">Tomt eller ugyldig = 10&nbsp;000&nbsp;000.</p>
-                    <button type="submit" class="go">Hent potensielle kunder</button>
+
+                    <button type="submit" class="knapp gronn go" style="width:100%; margin-top:18px; padding:12px;">
+                        Hent potensielle kunder
+                    </button>
                 </div>
             </div>
         </div>
     </form>
 
     {% if feilmelding %}
-        <p style="color:#b91c1c; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:12px 16px; font-weight:600;">{{ feilmelding }}</p>
+        <p class="feil" style="margin-top:20px;">{{ feilmelding }}</p>
     {% endif %}
 
     {% if kunder is not None %}
-
         <div class="results-head">
             <h1 style="font-size:18px; margin:0;">Treff</h1>
             <span class="count">{{ kunder|length }} selskap</span>
         </div>
 
-        <!-- Kart med markører -->
         <div id="map"></div>
 
         {{ kunder|json_script:"kunder-data" }}
 
-        <!-- Tabell -->
-        <table>
-            <thead>
-                <tr>
-                    <th>Firmanavn</th>
-                    <th>Org.nummer</th>
-                    <th>Daglig leder</th>
-                    <th>Kommune</th>
-                    <th>Adresse</th>
-                    <th>Eiendomsverdi (år)</th>
-                    <th>Nettside</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for kunde in kunder %}
-                <tr>
-                    <td>
-                        <strong>
+        <div class="kort">
+            <table class="data">
+                <thead>
+                    <tr>
+                        <th>Firmanavn</th>
+                        <th>Org.nummer</th>
+                        <th>Daglig leder</th>
+                        <th>Kommune</th>
+                        <th>Adresse</th>
+                        <th>Eiendomsverdi (&aring;r)</th>
+                        <th>Nettside</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for kunde in kunder %}
+                    <tr>
+                        <td>
                             <a href="https://virksomhet.brreg.no/nb/oppslag/enheter/{{ kunde.orgnr }}"
                                target="_blank" rel="noopener">{{ kunde.navn }}</a>
-                        </strong>
-                    </td>
-                    <td>{{ kunde.orgnr }}</td>
-                    <td>{{ kunde.leder }}</td>
-                    <td>{{ kunde.kommune }}</td>
-                    <td>{{ kunde.adresse }}</td>
-                    <td style="color: #16a34a; font-weight: bold;">
-                        {{ kunde.eiendomsverdi }}
-                        <br>
-                        <span style="color: #6b7280; font-size: 12px; font-weight: normal;">({{ kunde.aar }})</span>
-                    </td>
-                    <td>
-                        {% if kunde.hjemmeside != 'Ingen nettside oppgitt' %}
-                            <a href="https://{{ kunde.hjemmeside }}" target="_blank" rel="noopener">Besøk</a>
-                        {% else %}
-                            <span style="color: #9ca3af;">Mangler</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" style="text-align: center; color: #b91c1c;">Ingen selskaper matchet kravene.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
+                        </td>
+                        <td>{{ kunde.orgnr }}</td>
+                        <td>{{ kunde.leder }}</td>
+                        <td>{{ kunde.kommune }}</td>
+                        <td>{{ kunde.adresse }}</td>
+                        <td style="color: var(--gronn); font-weight: 700; white-space:nowrap;">
+                            {{ kunde.eiendomsverdi }}
+                            <span style="color: var(--dempet); font-size: 12px; font-weight: 400;">({{ kunde.aar }})</span>
+                        </td>
+                        <td>
+                            {% if kunde.hjemmeside != 'Ingen nettside oppgitt' %}
+                                <a href="https://{{ kunde.hjemmeside }}" target="_blank" rel="noopener">Bes&oslash;k</a>
+                            {% else %}
+                                <span style="color:#9ca3af;">Mangler</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="tom">Ingen selskaper matchet kravene.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
-        <p style="color:#6b7280;">Velg kommuner og trykk på knappen for å hente selskaper.</p>
+        <p style="color:var(--dempet); margin-top:20px;">Velg kommuner og trykk p&aring; knappen for &aring; hente selskaper.</p>
     {% endif %}
+{% endblock %}
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        // --- Filtrering av kommunelista (kjører alltid) ---
-        (function () {
-            var filter = document.getElementById('kommune-filter');
-            var select = document.getElementById('kommune-select');
-            if (!filter || !select) return;
-            filter.addEventListener('input', function () {
-                var q = this.value.toLowerCase();
-                Array.prototype.forEach.call(select.options, function (opt) {
-                    opt.hidden = q && opt.textContent.toLowerCase().indexOf(q) === -1;
-                });
+{% block skript %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    /* Filtrering av kommunelista */
+    (function () {
+        var filter = document.getElementById('kommune-filter');
+        var select = document.getElementById('kommune-select');
+        if (!filter || !select) return;
+        filter.addEventListener('input', function () {
+            var q = this.value.toLowerCase();
+            Array.prototype.forEach.call(select.options, function (opt) {
+                opt.hidden = q && opt.textContent.toLowerCase().indexOf(q) === -1;
             });
-        })();
+        });
+    })();
 
-        // --- Kart (kjører bare når det finnes resultater) ---
-        (function () {
-            var mapEl = document.getElementById('map');
-            var dataEl = document.getElementById('kunder-data');
-            if (!mapEl || !dataEl) return;
+    /* Kart over treff */
+    (function () {
+        var mapEl = document.getElementById('map');
+        var dataEl = document.getElementById('kunder-data');
+        if (!mapEl || !dataEl) return;
 
-            var kunder = JSON.parse(dataEl.textContent || '[]');
+        var kunder = JSON.parse(dataEl.textContent || '[]');
+        var map = L.map('map').setView([59.91, 10.75], 9);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
 
-            var map = L.map('map').setView([59.91, 10.75], 9);   // Oslo-området som start
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
-
-            var punkter = [];
-            kunder.forEach(function (k) {
-                if (k.lat == null || k.lon == null) return;   // hopp over de uten koordinater
-                var popup = '<strong>' + k.navn + '</strong><br>' + k.adresse +
-                            '<br>' + k.leder + '<br>' + k.eiendomsverdi + ' (' + k.aar + ')';
-                L.marker([k.lat, k.lon]).addTo(map).bindPopup(popup);
-                punkter.push([k.lat, k.lon]);
-            });
-
-            if (punkter.length) map.fitBounds(punkter, { padding: [40, 40] });   // zoom til alle markørene
-        })();
-    </script>
-
-</body>
-</html>
+        var punkter = [];
+        kunder.forEach(function (k) {
+            if (k.lat == null || k.lon == null) return;
+            var popup = '<strong>' + k.navn + '</strong><br>' + k.adresse +
+                        '<br>' + k.leder + '<br>' + k.eiendomsverdi + ' (' + k.aar + ')';
+            L.marker([k.lat, k.lon]).addTo(map).bindPopup(popup);
+            punkter.push([k.lat, k.lon]);
+        });
+        if (punkter.length) map.fitBounds(punkter, { padding: [40, 40] });
+    })();
+</script>
+{% endblock %}

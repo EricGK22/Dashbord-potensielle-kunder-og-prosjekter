@@ -1,63 +1,131 @@
-<!DOCTYPE html>
-<html lang="no">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prosjektsignaler</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; background: #f5f6f8;
-               color: #1f2937; margin: 0; padding: 32px 16px; }
-        .ramme { max-width: 1100px; margin: 0 auto; }
-        .tilbake { display: inline-block; margin-bottom: 16px; color: #2563eb;
-                   text-decoration: none; }
-        h1 { margin: 0 0 4px; font-size: 1.5rem; }
-        .faner { margin-bottom: 16px; }
-        .faner a { margin-right: 12px; color: #2563eb; text-decoration: none; }
-        .undertekst { color: #6b7280; margin-bottom: 20px; }
-        #kart { height: 480px; border-radius: 12px; overflow: hidden;
-                margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-        table { width: 100%; border-collapse: collapse; background: #fff;
-                border-radius: 12px; overflow: hidden;
-                box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-        th, td { text-align: left; padding: 12px 14px; }
-        th { background: #f9fafb; color: #6b7280; font-size: .8rem;
-             text-transform: uppercase; letter-spacing: .03em; }
-        tr + tr td { border-top: 1px solid #f0f1f3; }
-        td a { color: #1d4ed8; text-decoration: none; font-weight: 600; }
-        td a:hover { text-decoration: underline; }
-        .status { display: inline-block; padding: 3px 10px; border-radius: 999px;
-                  background: #eff6ff; color: #1d4ed8; font-size: .8rem;
-                  font-weight: 600; white-space: nowrap; }
-        .tom { background: #fff; border-radius: 12px; padding: 32px;
-               text-align: center; color: #6b7280;
-               box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-    </style>
-</head>
-<body>
-<div class="ramme">
-    <a class="tilbake" href="/">&larr; Tilbake til soeket</a>
-    <a href="{% url 'kommentarer' %}">Mine kommentarer</a>
+{% extends "base.html" %}
 
-     <h1>Prosjektsignaler{% if valgt_kilde %} &ndash; {{ valgt_kilde }}{% endif %}</h1>
+{% block tittel %}Signalposter{% endblock %}
 
-    <div class="faner">
-        <a href="{% url 'signaler' %}"
-           style="font-weight:{% if not valgt_kilde %}700{% else %}400{% endif %};">Alle</a>
-        {% for k in kilder %}
-            <a href="{% url 'signaler_kilde' k %}"
-               style="font-weight:{% if valgt_kilde == k %}700{% else %}400{% endif %};">{{ k }}</a>
-        {% endfor %}
+{% block ekstra_css %}
+<style>
+    /* Filterlinje */
+    .filterlinje {
+        display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
+        padding: 14px 18px; margin-bottom: 20px;
+    }
+    .filtergruppe { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .filtergruppe .tittel { font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+                            color: var(--dempet); font-weight: 700; margin-right: 2px; }
+
+    .chip {
+        border: 1px solid #d1d5db; background: #fff; color: var(--tekst);
+        padding: 6px 13px; border-radius: 999px; font-size: 13px; font-weight: 600;
+        cursor: pointer;
+    }
+    .chip:hover { background: #f3f4f6; }
+    .chip.aktiv { background: var(--primar); border-color: var(--primar); color: #fff; }
+    .chip.aktiv.fjernet { background: var(--rod); border-color: var(--rod); }
+    .chip .antall { opacity: .75; font-weight: 500; margin-left: 4px; }
+
+    .kildevalg {
+        display: inline-flex; align-items: center; gap: 6px;
+        border: 1px solid #d1d5db; border-radius: 999px;
+        padding: 5px 12px 5px 9px; font-size: 13px; font-weight: 600;
+        cursor: pointer; user-select: none; background: #fff;
+    }
+    .kildevalg input { accent-color: var(--primar); cursor: pointer; }
+    .kildevalg .prikk { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+    .verktoy { margin-left: auto; display: flex; gap: 8px; }
+
+    /* Rader */
+    tr.fjernet-rad td { opacity: .45; }
+    tr.fjernet-rad td:last-child, tr.fjernet-rad td.komm-celle { opacity: 1; }
+
+    /* Kommentar-dropdown */
+    details.kommentarer { position: relative; }
+    details.kommentarer > summary {
+        list-style: none; cursor: pointer; display: inline-flex;
+        align-items: center; gap: 6px;
+        border: 1px solid #d1d5db; background: #fff; border-radius: 999px;
+        padding: 5px 12px; font-size: 12px; font-weight: 600; white-space: nowrap;
+    }
+    details.kommentarer > summary::-webkit-details-marker { display: none; }
+    details.kommentarer > summary:hover { background: #f3f4f6; }
+    details.kommentarer[open] > summary { background: #eff6ff; border-color: #bfdbfe; color: var(--primar-mork); }
+    details.kommentarer .panel {
+        position: absolute; right: 0; top: calc(100% + 6px); z-index: 1000;
+        width: 320px; background: #fff; border: 1px solid var(--kant);
+        border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.15); padding: 12px;
+    }
+    .komm-liste { max-height: 240px; overflow-y: auto; margin-bottom: 10px; }
+    .komm {
+        padding: 8px 10px; border-radius: 8px; background: #f9fafb; margin-bottom: 6px;
+        font-size: 13px;
+    }
+    .komm .topp { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
+    .komm .hvem { font-weight: 700; font-size: 12px; }
+    .komm .naar { color: #9ca3af; font-size: 11px; white-space: nowrap; }
+    .komm.min { background: #eff6ff; }
+    .komm form { margin-top: 4px; text-align: right; }
+    .komm form button { background: none; border: none; color: var(--rod); font-size: 11px; cursor: pointer; padding: 0; }
+    .ny-kommentar { display: flex; gap: 6px; }
+    .ny-kommentar input { flex: 1; font-size: 13px; padding: 7px 9px; }
+
+    .merkelapper { display: inline-flex; gap: 5px; vertical-align: middle; }
+
+    /* Kompakt tabell så den holder seg innenfor kortet */
+    #signal-tabell { table-layout: auto; }
+    #signal-tabell th, #signal-tabell td { padding: 9px 10px; font-size: 13px; }
+    #signal-tabell td { overflow-wrap: anywhere; }
+    #signal-tabell td.dato, #signal-tabell td.frist { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    #signal-tabell .merke { font-size: 10px; padding: 2px 8px; }
+    #signal-tabell td:last-child, #signal-tabell th:last-child { min-width: 96px; }
+    #signal-tabell .knapp { white-space: nowrap; }
+</style>
+{% endblock %}
+
+{% block innhold %}
+    <h1>Signalposter</h1>
+    <p class="undertekst">Arealplaner, byggesaker og anbud under arbeid &middot;
+        <span id="synlig-antall">{{ signaler|length }}</span> signaler vises</p>
+
+    <!-- Filtre -->
+    <div class="kort filterlinje">
+        <div class="filtergruppe">
+            <span class="tittel">Status</span>
+            <button class="chip aktiv" data-status="aktive">Alle aktive</button>
+            <button class="chip" data-status="urorte">Ur&oslash;rte</button>
+            <button class="chip" data-status="kommenterte">Kommenterte</button>
+            <button class="chip fjernet" data-status="fjernede">Fjernede <span class="antall" id="antall-fjernede"></span></button>
+        </div>
+
+        <div class="filtergruppe">
+            <span class="tittel">Kilder</span>
+            {% for k in kilder %}
+            <label class="kildevalg">
+                <input type="checkbox" class="kilde-boks" value="{{ k }}" checked>
+                <span class="prikk" data-kilde-prikk="{{ k }}"></span>
+                {{ k }}
+            </label>
+            {% endfor %}
+        </div>
+
+        <div class="verktoy">
+            <form method="post" action="{% url 'kjor_oppdater' %}">
+                {% csrf_token %}
+                <button type="submit" class="knapp sekundar liten">Hent nye signaler</button>
+            </form>
+            <form method="post" action="{% url 'kjor_geokod' %}">
+                {% csrf_token %}
+                <button type="submit" class="knapp sekundar liten">Geokod</button>
+            </form>
+        </div>
     </div>
 
-    <div class="undertekst">
-        Arealplaner og byggesaker under arbeid &middot; {{ signaler|length }} signaler
-    </div>
-
+    <!-- Kart -->
     <div id="kart"></div>
 
+    <!-- Tabell -->
     {% if signaler %}
-        <table>
+    <div class="kort" style="overflow: visible;">
+        <table class="data" id="signal-tabell">
             <thead>
                 <tr>
                     <th>Dato</th>
@@ -74,8 +142,11 @@
             </thead>
             <tbody>
                 {% for s in signaler %}
-                <tr {% if s.er_avvist %}style="opacity:0.4;"{% endif %}>
-                    <td>{{ s.dato|default:"&ndash;" }}</td>
+                <tr class="signal-rad {% if s.er_avvist %}fjernet-rad{% endif %}"
+                    data-kilde="{{ s.kilde }}"
+                    data-avvist="{% if s.er_avvist %}1{% else %}0{% endif %}"
+                    data-kommentert="{% if s.kommentert_av_meg or s.kommentert_av_andre %}1{% else %}0{% endif %}">
+                    <td class="dato">{% if s.dato %}{{ s.dato|date:"d.m.y" }}{% else %}&ndash;{% endif %}</td>
                     <td>{{ s.kommune }}</td>
                     <td>{{ s.type }}</td>
                     <td>
@@ -84,57 +155,202 @@
                         {% else %}
                             {{ s.tittel }}
                         {% endif %}
+                        <span class="merkelapper">
+                            {% if s.er_avvist %}<span class="merke rod">Fjernet</span>{% endif %}
+                            {% if s.kommentert_av_meg %}<span class="merke gronn" title="Du har kommentert">&#128172; deg</span>
+                            {% elif s.kommentert_av_andre %}<span class="merke gul" title="Andre har kommentert">&#128172;</span>{% endif %}
+                        </span>
                     </td>
-                    <td><span class="status">{{ s.status|default:"&ndash;" }}</span></td>
+                    <td><span class="merke bla">{{ s.status|default:"&ndash;" }}</span></td>
                     <td>{{ s.kilde }}</td>
-                    <td>{{ s.part|default:"&ndash;" }}</td>
-                    <td>{{ s.frist|default:"&ndash;" }}</td>
-                    <td>
-                        {% for k in s.kommentarer.all %}
-                            <div><small><b>{{ k.bruker.username }}:</b> {{ k.tekst }}</small></div>
-                        {% endfor %}
-                        <form method="post" action="{% url 'legg_til_kommentar' s.id %}">
-                            {% csrf_token %}
-                            <input type="text" name="tekst" placeholder="Ny kommentar">
-                            <button type="submit">Lagre</button>
-                        </form>
+                    <td>{{ s.part|default:"&ndash;"|truncatechars:45 }}</td>
+                    <td class="frist">{% if s.frist %}{{ s.frist|date:"d.m.y" }}{% else %}&ndash;{% endif %}</td>
+
+                    <!-- Kommentar-dropdown -->
+                    <td class="komm-celle">
+                        <details class="kommentarer">
+                            <summary>&#128172; {{ s.kommentar.all|length }}</summary>
+                            <div class="panel">
+                                <div class="komm-liste">
+                                    {% for k in s.kommentar.all %}
+                                        <div class="komm {% if k.bruker == user %}min{% endif %}">
+                                            <div class="topp">
+                                                <span class="hvem">{{ k.bruker.username|default:"slettet bruker" }}</span>
+                                                <span class="naar">{{ k.opprettet|date:"d.m.Y H:i" }}</span>
+                                            </div>
+                                            {{ k.tekst }}
+                                            {% if k.bruker == user %}
+                                            <form method="post" action="{% url 'slett_kommentar' k.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit">Slett</button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    {% empty %}
+                                        <div style="color:var(--dempet); font-size:13px; padding:4px 2px;">
+                                            Ingen kommentarer enn&aring;.
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <form method="post" action="{% url 'legg_til_kommentar' s.id %}" class="ny-kommentar">
+                                    {% csrf_token %}
+                                    <input type="text" name="tekst" placeholder="Skriv en kommentar&hellip;" required>
+                                    <button type="submit" class="knapp liten">Lagre</button>
+                                </form>
+                            </div>
+                        </details>
                     </td>
+
+                    <!-- Fjern / gjenopprett -->
                     <td>
                         <form method="post" action="{% url 'toggle_avvist' s.id %}">
                             {% csrf_token %}
-                            <button type="submit">{% if s.er_avvist %}Angre{% else %}Kryss ut{% endif %}</button>
+                            {% if s.er_avvist %}
+                                <button type="submit" class="knapp sekundar liten">Gjenopprett</button>
+                            {% else %}
+                                <button type="submit" class="knapp fare liten">Fjern</button>
+                            {% endif %}
                         </form>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        <div class="tom" id="ingen-treff" style="display:none;">Ingen signaler matcher filtrene.</div>
+    </div>
     {% else %}
-        <div class="tom">
-            Ingen signaler enn&aring;. Kj&oslash;r <code>python manage.py oppdater_signaler</code> for &aring; hente.
+        <div class="kort tom">
+            Ingen signaler enn&aring;. Trykk p&aring; <b>Hent nye signaler</b> eller kj&oslash;r
+            <code>python manage.py oppdater_signaler</code>.
         </div>
     {% endif %}
-</div>
+{% endblock %}
 
+{% block skript %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    const kart = L.map("kart").setView([59.86, 10.45], 11);   // Asker/Baerum
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap",
-        maxZoom: 19,
-    }).addTo(kart);
+    /* ---------- Data ---------- */
+    const farger = {
+        "arealplaner.no":  "#2563eb",
+        "Asker postliste": "#16a34a",
+        "Bærum postliste": "#ea580c",
+        "Doffin.no":       "#9333ea",
+    };
+    const reserveFarger = ["#0d9488", "#db2777", "#ca8a04", "#4f46e5"];
+    let reserveIdx = 0;
+    function fargeFor(kilde) {
+        if (!farger[kilde]) farger[kilde] = reserveFarger[reserveIdx++ % reserveFarger.length];
+        return farger[kilde];
+    }
 
     const punkter = [
-      {% for s in signaler %}{% if s.lat and s.lon and not s.er_avvist %}
-      {lat: {{ s.lat }}, lon: {{ s.lon }}, tittel: "{{ s.tittel|escapejs }}", part: "{{ s.part|escapejs }}", lenke: "{{ s.lenke|escapejs }}"},
+      {% for s in signaler %}{% if s.lat and s.lon %}
+      { lat: {{ s.lat }}, lon: {{ s.lon }},
+        tittel: "{{ s.tittel|escapejs }}", part: "{{ s.part|escapejs }}",
+        lenke: "{{ s.lenke|escapejs }}", kilde: "{{ s.kilde|escapejs }}",
+        avvist: {% if s.er_avvist %}true{% else %}false{% endif %},
+        kommentert: {% if s.kommentert_av_meg or s.kommentert_av_andre %}true{% else %}false{% endif %} },
       {% endif %}{% endfor %}
     ];
 
-    punkter.forEach(s => {
-        L.marker([s.lat, s.lon]).addTo(kart)
-         .bindPopup(`<b>${s.tittel}</b><br>${s.part || ""}<br><a href="${s.lenke}" target="_blank" rel="noopener">Aapne sak</a>`);
+    /* Fargeprikker i kildefilteret */
+    document.querySelectorAll("[data-kilde-prikk]").forEach(el => {
+        el.style.background = fargeFor(el.dataset.kildePrikk);
     });
+
+    /* ---------- Kart ---------- */
+    const kart = L.map("kart").setView([59.86, 10.45], 11);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap", maxZoom: 19,
+    }).addTo(kart);
+
+    const markorLag = L.layerGroup().addTo(kart);
+
+    const legend = L.control({ position: "bottomright" });
+    legend.onAdd = function () {
+        const div = L.DomUtil.create("div");
+        div.style.cssText = "background:#fff;padding:8px 10px;border-radius:8px;font:12px system-ui;box-shadow:0 1px 4px rgba(0,0,0,.2);";
+        div.innerHTML = Object.entries(farger).map(([k, c]) =>
+            `<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:6px;"></span>${k}</div>`
+        ).join("");
+        return div;
+    };
+    legend.addTo(kart);
+
+    /* ---------- Filtrering ---------- */
+    let valgtStatus = "aktive";
+
+    function valgteKilder() {
+        return new Set([...document.querySelectorAll(".kilde-boks:checked")].map(b => b.value));
+    }
+
+    function passerStatus(avvist, kommentert) {
+        switch (valgtStatus) {
+            case "fjernede":    return avvist;
+            case "kommenterte": return !avvist && kommentert;
+            case "urorte":      return !avvist && !kommentert;
+            default:            return !avvist;            // "aktive"
+        }
+    }
+
+    function oppdaterVisning() {
+        const kilder = valgteKilder();
+        let synlige = 0;
+
+        document.querySelectorAll(".signal-rad").forEach(rad => {
+            const vis = kilder.has(rad.dataset.kilde) &&
+                        passerStatus(rad.dataset.avvist === "1", rad.dataset.kommentert === "1");
+            rad.style.display = vis ? "" : "none";
+            if (vis) synlige++;
+        });
+
+        const antallEl = document.getElementById("synlig-antall");
+        if (antallEl) antallEl.textContent = synlige;
+        const ingen = document.getElementById("ingen-treff");
+        if (ingen) ingen.style.display = synlige ? "none" : "";
+
+        /* Kartet følger filtrene */
+        markorLag.clearLayers();
+        const koord = [];
+        punkter.forEach(p => {
+            if (!kilder.has(p.kilde) || !passerStatus(p.avvist, p.kommentert)) return;
+            const farge = p.avvist ? "#9ca3af" : fargeFor(p.kilde);
+            L.circleMarker([p.lat, p.lon], {
+                radius: 7, color: farge, fillColor: farge,
+                fillOpacity: p.avvist ? 0.5 : 0.85, weight: 2,
+            }).addTo(markorLag)
+              .bindPopup(`<b>${p.tittel}</b>${p.kommentert ? " &#128172;" : ""}<br>${p.part || ""}<br>` +
+                         (p.lenke ? `<a href="${p.lenke}" target="_blank" rel="noopener">&Aring;pne sak</a>` : ""));
+            koord.push([p.lat, p.lon]);
+        });
+        if (koord.length) kart.fitBounds(koord, { padding: [40, 40], maxZoom: 13 });
+    }
+
+    /* Status-chips */
+    document.querySelectorAll(".chip[data-status]").forEach(chip => {
+        chip.addEventListener("click", () => {
+            document.querySelectorAll(".chip[data-status]").forEach(c => c.classList.remove("aktiv"));
+            chip.classList.add("aktiv");
+            valgtStatus = chip.dataset.status;
+            oppdaterVisning();
+        });
+    });
+
+    /* Kilde-avkrysninger */
+    document.querySelectorAll(".kilde-boks").forEach(b => b.addEventListener("change", oppdaterVisning));
+
+    /* Antall fjernede i chip */
+    const antallFjernede = document.querySelectorAll('.signal-rad[data-avvist="1"]').length;
+    const fjernEl = document.getElementById("antall-fjernede");
+    if (fjernEl) fjernEl.textContent = antallFjernede ? `(${antallFjernede})` : "(0)";
+
+    /* Lukk åpne kommentar-dropdowns ved klikk utenfor */
+    document.addEventListener("click", e => {
+        document.querySelectorAll("details.kommentarer[open]").forEach(d => {
+            if (!d.contains(e.target)) d.removeAttribute("open");
+        });
+    });
+
+    oppdaterVisning();
 </script>
-</body>
-</html>
+{% endblock %}
