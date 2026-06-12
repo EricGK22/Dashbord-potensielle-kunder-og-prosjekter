@@ -187,7 +187,7 @@ def _hent_eiendoms_verdi(orgnr,aar,kun_cache=False):
         return None
 
 #---------------------------------------Kart funksjoner----------------------------------------------------------
-
+TILLATE_FYLKER = ("03", "32")
 
 def _koordinater(adresse):
     gate = ",".join(adresse.get("adresse", []))
@@ -222,8 +222,11 @@ def _kommuner():
         print(f"Feil ved innhenting av kommuner: {e}")
         return {}
     return dict(sorted(
-        ((k["kommunenummer"], k["kommunenavnNorsk"]) for k in data),
-        key = lambda kv: kv[1],
+        ((k["kommunenummer"], k["kommunenavnNorsk"]) 
+        for k in data 
+        if k["kommunenummer"].startswith(TILLATE_FYLKER)
+    ),
+        key=lambda kv: kv[1]
     ))
     
 def _fylker():
@@ -240,7 +243,7 @@ def _fylker():
     for f in data:
         nr = f.get("fylkesnummer")
         navn = f.get("fylkesnavn") or f.get("fylkesnavnNorsk") or nr
-        if nr:
+        if nr and nr in TILLATE_FYLKER:
             fylker[nr] = navn
     return dict(sorted(fylker.items(), key=lambda kv: kv[1]))
 
