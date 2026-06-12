@@ -187,8 +187,6 @@ def _hent_eiendoms_verdi(orgnr,aar,kun_cache=False):
         return None
 
 #---------------------------------------Kart funksjoner----------------------------------------------------------
-TILLATE_FYLKER = ("03", "32")
-
 def _koordinater(adresse):
     gate = ",".join(adresse.get("adresse", []))
     sok = f"{gate} {adresse.get('postnummer','')} {adresse.get('poststed','')}".strip()
@@ -212,40 +210,11 @@ def _koordinater(adresse):
 
 
 def _kommuner():
-    url = "https://api.kartverket.no/kommuneinfo/v1/kommuner"
-    
-    try: 
-        response = SESSION.get(url, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-    except Exception as e:
-        print(f"Feil ved innhenting av kommuner: {e}")
-        return {}
-    return dict(sorted(
-        ((k["kommunenummer"], k["kommunenavnNorsk"]) 
-        for k in data 
-        if k["kommunenummer"].startswith(TILLATE_FYLKER)
-    ),
-        key=lambda kv: kv[1]
-    ))
-    
-def _fylker():
-    url = "https://api.kartverket.no/kommuneinfo/v1/fylker"
-    
-    try: 
-        response = SESSION.get(url, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-    except Exception as e:
-        print(f"Feil ved innhenting av fylker: {e}")
-        return {}
-    fylker = {}
-    for f in data:
-        nr = f.get("fylkesnummer")
-        navn = f.get("fylkesnavn") or f.get("fylkesnavnNorsk") or nr
-        if nr and nr in TILLATE_FYLKER:
-            fylker[nr] = navn
-    return dict(sorted(fylker.items(), key=lambda kv: kv[1]))
+    return {
+        "0301": "Oslo",
+        "3201": "Bærum",
+        "3203": "Asker",
+    }
 
 
 #---------------------------------------Kjøre funksjon---------------------------------------------------------------------

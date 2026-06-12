@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
-from .services import _fylker, _kommuner, les_eiendomsverdi_cache, potential_customers, SESSION
+from .services import _kommuner, les_eiendomsverdi_cache, potential_customers, SESSION
 from django.contrib.auth.decorators import login_required
 import xml.etree.ElementTree as ET
 from .models import ProsjektSignal, SignalStatus, Kommentar, Eiendomsverdi
@@ -13,13 +13,12 @@ import json
 
 def index(request):
     kommuner = _kommuner()
-    fylker = _fylker()
     kunder = None
     feilmelding = None
     minste_eiendomsverdi=200_000_000
     if request.method == "POST":
         valgte_kommuner = set(request.POST.getlist("kommunenummer"))
-        valgte_fylker = request.POST.getlist("fylkesnummer")
+        valgte_kommuner &= set(kommuner.keys()) 
         selskapsform = request.POST.get("organisasjonsform", "AS")
         
         raw = request.POST.get("minste_eiendomsverdi", "")
@@ -29,9 +28,6 @@ def index(request):
             minste_eiendomsverdi = int(raw)
             print("VIEW minste_omsetning =", minste_eiendomsverdi)
         
-        for fnr in valgte_fylker:
-            valgte_kommuner.update(nr for nr in kommuner if nr.startswith(fnr))
-        
         if not valgte_kommuner:
             feilmelding= "Du har ikke valgt noen kommuner eller fylker"
         else:
@@ -39,7 +35,6 @@ def index(request):
         
     return render(request, "index.html",{
             "kommuner": kommuner,
-            "fylker": fylker,
             "kunder": kunder,
             "feilmelding": feilmelding,
             "minste_eiendomsverdi": minste_eiendomsverdi,

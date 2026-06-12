@@ -26,23 +26,17 @@
         <div class="kort pad">
             <div class="panel-grid">
                 <div>
-                    <label for="fylke-select">Fylker</label>
-                    <select name="fylkesnummer" id="fylke-select" multiple size="6">
-                        {% for nr, navn in fylker.items %}
-                            <option value="{{ nr }}">{{ navn }} ({{ nr }})</option>
-                        {% endfor %}
-                    </select>
-                    <p class="hint">Velger du et fylke, tas alle kommunene i fylket med.</p>
-
-                    <label for="kommune-select" style="margin-top:16px;">Kommuner</label>
-                    <input type="text" id="kommune-filter" placeholder="Skriv for &aring; filtrere lista&hellip;"
-                           autocomplete="off" style="margin-bottom:6px;">
-                    <select name="kommunenummer" id="kommune-select" multiple size="12">
+                    <label>Kommuner</label>
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;">
                         {% for nr, navn in kommuner.items %}
-                            <option value="{{ nr }}">{{ navn }} ({{ nr }})</option>
+                        <label style="display:flex; align-items:center; gap:8px; font-size:14px; text-transform:none; letter-spacing:0; color:var(--tekst); font-weight:500;">
+                            <input type="checkbox" name="kommunenummer" value="{{ nr }}" checked
+                                   style="width:auto; accent-color:var(--primar);">
+                            {{ navn }}
+                        </label>
                         {% endfor %}
-                    </select>
-                    <p class="hint">Hold inne Ctrl (Cmd p&aring; Mac) for &aring; velge flere. Velg minst ett fylke eller &eacute;n kommune.</p>
+                    </div>
+                    <p class="hint">Velg hvilke kommuner du vil hente selskaper fra.</p>
                 </div>
 
                 <div>
@@ -133,19 +127,6 @@
 {% block skript %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    /* Filtrering av kommunelista */
-    (function () {
-        var filter = document.getElementById('kommune-filter');
-        var select = document.getElementById('kommune-select');
-        if (!filter || !select) return;
-        filter.addEventListener('input', function () {
-            var q = this.value.toLowerCase();
-            Array.prototype.forEach.call(select.options, function (opt) {
-                opt.hidden = q && opt.textContent.toLowerCase().indexOf(q) === -1;
-            });
-        });
-    })();
-
     /* Kart over treff */
     (function () {
         var mapEl = document.getElementById('map');
