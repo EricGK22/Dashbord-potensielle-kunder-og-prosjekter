@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 import xml.etree.ElementTree as ET
 from .models import ProsjektSignal, SignalStatus, Kommentar, Eiendomsverdi
 from django.core.management import call_command
+import json
 
 
 
@@ -50,25 +51,48 @@ def eiendomsverdier_api(request):
 
 @login_required
 def signaler(request, kilde=None):
-    alle = (ProsjektSignal.objects.order_by("-dato").prefetch_related("kommentar__bruker"))
+    alle = (ProsjektSignal.objects.order_by("-dato").prefetch_related("kommentar"))
     if kilde:
         alle = alle.filter(kilde=kilde)
     alle = list(alle)
+    
     avviste_ids = set(
-        SignalStatus.objects.filter(bruker= request.user, avvist = True).values_list("signal_id", flat=True)
+        SignalStatus.objects.filter(bruker=request.user, avvist=True).values_list("signal_id", flat = True)
     )
+    
+    bruker_id = request.user.id
+    punkter = []
     for s in alle:
         s.er_avvist = s.id in avviste_ids
         brukere = {k.bruker_id for k in s.kommentar.all()}
-        s.kommentert_av_meg = request.user.id in brukere
-        s.kommentert_av_andre = bool(brukere - {request.user.id})
-    kilder = (ProsjektSignal.objects.exclude(kilde="").values_list("kilde", flat=True).distinct().order_by("kilde"))
+        s.kommentert_av_meg = bruker_id in brukere
+        s.kommentert_av_andre = bool(brukere - {bruker_id})
+        
+    if s.lat is not None and s.lon is not None:
+        try:
+            punkter.append({
+                "lat": float(s.lat),
+                "lon": float(s.lon),
+                "tittel": s.tittel or "",
+                "part": s.part or "",
+                "lenke": s.lenke or "",
+                "kile": s.kilde or "",
+                "avvist": s.er_avvist,
+                "kommentert": s.kommentert_av_meg or s.kommentert_av_andre,
+            })
+        except (TypeError, ValueError):
+            pass
+    
+    kilder = (ProsjektSignal.objects.exclude(kilde="").values_list("kilde", flat = True).distinct().order_by("kilde"))
+    
     return render(request, "signaler.html", {
         "signaler": alle,
         "valgt_kilde": kilde,
         "kilder": kilder,
+        "punkter_json": json.dumps(punkter),
     })
-    
+
+
 
 @login_required
 def toggle_avvist(request, signal_id):

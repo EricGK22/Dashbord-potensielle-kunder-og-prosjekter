@@ -214,6 +214,7 @@
 {% endblock %}
 
 {% block skript %}
+<script id="punkter-data" type="application/json">{{ punkter_json|safe }}</script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     /* ---------- Data ---------- */
@@ -230,15 +231,7 @@
         return farger[kilde];
     }
 
-    const punkter = [
-      {% for s in signaler %}{% if s.lat and s.lon %}
-      { lat: {{ s.lat }}, lon: {{ s.lon }},
-        tittel: "{{ s.tittel|escapejs }}", part: "{{ s.part|escapejs }}",
-        lenke: "{{ s.lenke|escapejs }}", kilde: "{{ s.kilde|escapejs }}",
-        avvist: {% if s.er_avvist %}true{% else %}false{% endif %},
-        kommentert: {% if s.kommentert_av_meg or s.kommentert_av_andre %}true{% else %}false{% endif %} },
-      {% endif %}{% endfor %}
-    ];
+    const punkter = JSON.parse(document.getElementById("punkter-data").textContent);
 
     /* Fargeprikker i kildefilteret */
     document.querySelectorAll("[data-kilde-prikk]").forEach(el => {
