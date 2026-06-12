@@ -41,7 +41,7 @@ def _hent_arealplaner(kunde, kommune, fra_dato = "2026", status_ids=(1,2,3)):
             plan_id = plan.get("id") or plan.get("planId")
             link = f"https://arealplaner.no/{kunde}/arealplaner/{plan_id}"
             oppslag.append({
-                "kilde": "arealplaner",
+                "kilde": "Arealplaner",
                 "kommune": kommune,
                 "type": plan.get("planType", "Arealplan"),
                 "referanse": str(plan.get("planId") or plan_id),
