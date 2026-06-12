@@ -68,20 +68,20 @@ def signaler(request, kilde=None):
         s.kommentert_av_meg = bruker_id in brukere
         s.kommentert_av_andre = bool(brukere - {bruker_id})
         
-    if s.lat is not None and s.lon is not None:
-        try:
-            punkter.append({
-                "lat": float(s.lat),
-                "lon": float(s.lon),
-                "tittel": s.tittel or "",
-                "part": s.part or "",
-                "lenke": s.lenke or "",
-                "kile": s.kilde or "",
-                "avvist": s.er_avvist,
-                "kommentert": s.kommentert_av_meg or s.kommentert_av_andre,
-            })
-        except (TypeError, ValueError):
-            pass
+        if s.lat is not None and s.lon is not None:
+            try:
+                punkter.append({
+                    "lat": float(s.lat),
+                    "lon": float(s.lon),
+                    "tittel": s.tittel or "",
+                    "part": s.part or "",
+                    "lenke": s.lenke or "",
+                    "kile": s.kilde or "",
+                    "avvist": s.er_avvist,
+                    "kommentert": s.kommentert_av_meg or s.kommentert_av_andre,
+                })
+            except (TypeError, ValueError):
+                pass
     
     kilder = (ProsjektSignal.objects.exclude(kilde="").values_list("kilde", flat = True).distinct().order_by("kilde"))
     
