@@ -21,7 +21,7 @@
     <p class="undertekst">S&oslash;k etter potensielle kunder basert p&aring; kommune, selskapsform og eiendomsverdi.</p>
 
     <form method="post" id="sok-form"
-          onsubmit="var b=this.querySelector('button.go'); b.disabled=true; b.textContent='Henter\u2026 dette kan ta opptil 10 minutter';">
+          onsubmit="var b=this.querySelector('button.go'); b.disabled=true; b.textContent='Henter\u2026 dette kan ta litt tid';">
         {% csrf_token %}
         <div class="kort pad">
             <div class="panel-grid">

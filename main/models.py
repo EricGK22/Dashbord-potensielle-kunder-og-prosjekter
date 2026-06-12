@@ -3,6 +3,22 @@ from django.contrib.auth.models import User
 
 # Create your models here.
 
+class Selskap(models.Model):
+    orgnr          = models.CharField(max_length=9, unique=True, db_index=True)
+    navn           = models.CharField(max_length=255)
+    kommune        = models.CharField(max_length=100, blank=True)
+    kommunenummer  = models.CharField(max_length=4, blank=True, db_index=True)
+    adresse        = models.CharField(max_length=255, blank=True)
+    leder          = models.CharField(max_length=255, blank=True)
+    hjemmeside     = models.CharField(max_length=255, blank=True)
+    aar            = models.CharField(max_length=4, blank=True)
+    lat            = models.FloatField(null=True, blank=True)
+    lon            = models.FloatField(null=True, blank=True)
+    oppdatert      = models.DateField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.navn} ({self.orgnr})"
+
 class Eiendomsverdi(models.Model):
     orgnr = models.CharField(max_length=9,db_index=True)
     aar = models.CharField(max_length=4)

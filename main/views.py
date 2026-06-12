@@ -4,7 +4,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .services import _kommuner, les_eiendomsverdi_cache, potential_customers, SESSION
 from django.contrib.auth.decorators import login_required
 import xml.etree.ElementTree as ET
-from .models import ProsjektSignal, SignalStatus, Kommentar, Eiendomsverdi
+from .models import ProsjektSignal, SignalStatus, Kommentar, Eiendomsverdi, Selskap
 from django.core.management import call_command
 import json
 
@@ -12,33 +12,35 @@ import json
 
 
 def index(request):
-    kommuner = _kommuner()
-    kunder = None
-    feilmelding = None
-    minste_eiendomsverdi=200_000_000
-    if request.method == "POST":
-        valgte_kommuner = set(request.POST.getlist("kommunenummer"))
-        valgte_kommuner &= set(kommuner.keys()) 
-        selskapsform = request.POST.get("organisasjonsform", "AS")
-        
-        raw = request.POST.get("minste_eiendomsverdi", "")
-        raw = raw.replace(" ", "").replace("\xa0", "").replace(".", "").replace(",", "")
-        
-        if raw.isdigit():
-            minste_eiendomsverdi = int(raw)
-            print("VIEW minste_omsetning =", minste_eiendomsverdi)
-        
-        if not valgte_kommuner:
-            feilmelding= "Du har ikke valgt noen kommuner eller fylker"
-        else:
-            kunder = potential_customers(selskapsform,sorted(valgte_kommuner),minste_eiendomsverdi)
-        
-    return render(request, "index.html",{
-            "kommuner": kommuner,
-            "kunder": kunder,
-            "feilmelding": feilmelding,
-            "minste_eiendomsverdi": minste_eiendomsverdi,
+    selskaper = list(Selskap.objects.all())
+    orgnrs = [s.orgnr for s in selskaper]
+    verdi_map = {}
+    
+    for ev in Eiendomsverdi.objects.filter(orgnr__in=orgnrs):
+        verdi = ev.tomter_bygninger or ev.sum_varige_driftsmidler
+        verdi_map[(ev.orgnr, ev.aar)] = verdi
+    kunder = []
+    for s in selskaper:
+        verdi = verdi_map.get((s.orgnr, s.aar))
+        kunder.append({
+            "navn": s.navn,
+            "orgnr": s.orgnr,
+            "kommune": s.kommune,
+            "hjemmeside": s.hjemmeside or "Ingen nettside oppgitt",
+            "_verdi": verdi or 0,
+            "eiendomsverdi": f"{verdi:,} kr" if verdi else "Ukjent",
+            "adresse": s.adresse,
+            "aar": s.aar or "Ukjent",
+            "leder": s.leder or "Ikke oppført",
+            "lat": s.lat,
+            "lon": s.lon,
         })
+        kunder.sort(key=lambda k: k["_verdi"], reverse=True)
+
+    return render(request, "index.html", {
+        "kunder": kunder,
+        "antall": len(kunder),
+    })
     
 def eiendomsverdier_api(request):
     return JsonResponse(les_eiendomsverdi_cache())
