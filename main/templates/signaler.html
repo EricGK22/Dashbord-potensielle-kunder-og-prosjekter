@@ -358,13 +358,12 @@
     });
 
     /* Bevar scroll-posisjon over sidelast:
-       lagre y-posisjon i URL rett før et skjema sendes, og rull dit ved lasting. */
+       lagre y-posisjon i URL-en (uten å røre skjemaets action) rett før innsending. */
     document.querySelectorAll("form").forEach(f => {
         f.addEventListener("submit", () => {
             const params = new URLSearchParams(window.location.search);
             params.set("y", Math.round(window.scrollY));
             history.replaceState(null, "", "?" + params.toString());
-            f.action = window.location.pathname + "?" + params.toString();
         });
     });
 
