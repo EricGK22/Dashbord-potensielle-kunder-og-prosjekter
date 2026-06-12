@@ -258,7 +258,29 @@
     legend.addTo(kart);
 
     /* ---------- Filtrering ---------- */
-    let valgtStatus = "aktive";
+    const urlParams = new URLSearchParams(window.location.search);
+    let valgtStatus = urlParams.get("status") || "aktive";
+
+    /* Sett riktig status-chip aktiv ut fra URL */
+    document.querySelectorAll(".chip[data-status]").forEach(c => {
+        c.classList.toggle("aktiv", c.dataset.status === valgtStatus);
+    });
+
+    /* Sett kilde-avkrysninger ut fra URL (hvis angitt) */
+    if (urlParams.has("kilder")) {
+        const valgte = new Set(urlParams.get("kilder").split("|").filter(Boolean));
+        document.querySelectorAll(".kilde-boks").forEach(b => {
+            b.checked = valgte.has(b.value);
+        });
+    }
+
+    function lagreFiltreIUrl() {
+        const params = new URLSearchParams(window.location.search);
+        params.set("status", valgtStatus);
+        const valgte = [...document.querySelectorAll(".kilde-boks:checked")].map(b => b.value);
+        params.set("kilder", valgte.join("|"));
+        history.replaceState(null, "", "?" + params.toString());
+    }
 
     function valgteKilder() {
         return new Set([...document.querySelectorAll(".kilde-boks:checked")].map(b => b.value));
@@ -312,12 +334,16 @@
             document.querySelectorAll(".chip[data-status]").forEach(c => c.classList.remove("aktiv"));
             chip.classList.add("aktiv");
             valgtStatus = chip.dataset.status;
+            lagreFiltreIUrl();
             oppdaterVisning();
         });
     });
 
     /* Kilde-avkrysninger */
-    document.querySelectorAll(".kilde-boks").forEach(b => b.addEventListener("change", oppdaterVisning));
+    document.querySelectorAll(".kilde-boks").forEach(b => b.addEventListener("change", () => {
+        lagreFiltreIUrl();
+        oppdaterVisning();
+    }));
 
     /* Antall fjernede i chip */
     const antallFjernede = document.querySelectorAll('.signal-rad[data-avvist="1"]').length;
@@ -330,6 +356,23 @@
             if (!d.contains(e.target)) d.removeAttribute("open");
         });
     });
+
+    /* Bevar scroll-posisjon over sidelast:
+       lagre y-posisjon i URL rett før et skjema sendes, og rull dit ved lasting. */
+    document.querySelectorAll("form").forEach(f => {
+        f.addEventListener("submit", () => {
+            const params = new URLSearchParams(window.location.search);
+            params.set("y", Math.round(window.scrollY));
+            history.replaceState(null, "", "?" + params.toString());
+            f.action = window.location.pathname + "?" + params.toString();
+        });
+    });
+
+    /* Gjenopprett scroll-posisjon hvis den ligger i URL */
+    const lagretY = parseInt(urlParams.get("y"), 10);
+    if (!isNaN(lagretY)) {
+        window.scrollTo(0, lagretY);
+    }
 
     oppdaterVisning();
 </script>
