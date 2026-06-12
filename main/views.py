@@ -76,7 +76,7 @@ def signaler(request, kilde=None):
                     "tittel": s.tittel or "",
                     "part": s.part or "",
                     "lenke": s.lenke or "",
-                    "kile": s.kilde or "",
+                    "kilde": s.kilde or "",
                     "avvist": s.er_avvist,
                     "kommentert": s.kommentert_av_meg or s.kommentert_av_andre,
                 })
