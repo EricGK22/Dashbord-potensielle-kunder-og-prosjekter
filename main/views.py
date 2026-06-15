@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from .models import ProsjektSignal, SignalStatus, Kommentar, Eiendomsverdi, Selskap
 from django.core.management import call_command
 import json
+from django.utils import timezone
 
 
 
@@ -53,14 +54,10 @@ def signaler(request, kilde=None):
         alle = alle.filter(kilde=kilde)
     alle = list(alle)
     
-    avviste_ids = set(
-        SignalStatus.objects.filter(bruker=request.user, avvist=True).values_list("signal_id", flat = True)
-    )
-    
     bruker_id = request.user.id
     punkter = []
     for s in alle:
-        s.er_avvist = s.id in avviste_ids
+        s.er_avvist = s.avvist
         brukere = {k.bruker_id for k in s.kommentar.all()}
         s.kommentert_av_meg = bruker_id in brukere
         s.kommentert_av_andre = bool(brukere - {bruker_id})
@@ -68,6 +65,7 @@ def signaler(request, kilde=None):
         if s.lat is not None and s.lon is not None:
             try:
                 punkter.append({
+                    "id": s.id,
                     "lat": float(s.lat),
                     "lon": float(s.lon),
                     "tittel": s.tittel or "",
@@ -94,9 +92,14 @@ def signaler(request, kilde=None):
 @login_required
 def toggle_avvist(request, signal_id):
     signal = get_object_or_404(ProsjektSignal, id=signal_id)
-    status, _ = SignalStatus.objects.get_or_create(bruker=request.user, signal=signal)
-    status.avvist = not status.avvist
-    status.save()
+    signal.avvist = not signal.avvist
+    if signal.avvist:
+        signal.avvist_av = request.user
+        signal.avvist_tid = timezone.now()
+    else:
+        signal.avvist_av = None
+        signal.avvist_tid = None
+    signal.save()
     return redirect(request.META.get("HTTP_REFERER") or "signaler")
 
 @login_required

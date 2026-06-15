@@ -76,6 +76,8 @@
     #signal-tabell .merke { font-size: 10px; padding: 2px 8px; }
     #signal-tabell td:last-child, #signal-tabell th:last-child { min-width: 96px; }
     #signal-tabell .knapp { white-space: nowrap; }
+    /* Fremheving når man hopper fra kartet */
+    tr.fremhevet td { background: #fef9c3 !important; transition: background .3s; }
 </style>
 {% endblock %}
 
@@ -129,7 +131,7 @@
             </thead>
             <tbody>
                 {% for s in signaler %}
-                <tr class="signal-rad {% if s.er_avvist %}fjernet-rad{% endif %}"
+                <tr id="signal-{{ s.id }}" class="signal-rad {% if s.er_avvist %}fjernet-rad{% endif %}"
                     data-kilde="{{ s.kilde }}"
                     data-avvist="{% if s.er_avvist %}1{% else %}0{% endif %}"
                     data-kommentert="{% if s.kommentert_av_meg or s.kommentert_av_andre %}1{% else %}0{% endif %}">
@@ -295,6 +297,17 @@
         }
     }
 
+    /* Hopp til en signalrad i tabellen fra kart-popup */
+    function visIListe(id) {
+        const rad = document.getElementById("signal-" + id);
+        if (!rad) return;
+        // Sørg for at raden er synlig (kan være filtrert bort) ved å vise alle midlertidig
+        rad.style.display = "";
+        rad.scrollIntoView({ behavior: "smooth", block: "center" });
+        rad.classList.add("fremhevet");
+        setTimeout(() => rad.classList.remove("fremhevet"), 2000);
+    }
+
     function oppdaterVisning() {
         const kilder = valgteKilder();
         let synlige = 0;
@@ -322,7 +335,8 @@
                 fillOpacity: p.avvist ? 0.5 : 0.85, weight: 2,
             }).addTo(markorLag)
               .bindPopup(`<b>${p.tittel}</b>${p.kommentert ? " &#128172;" : ""}<br>${p.part || ""}<br>` +
-                         (p.lenke ? `<a href="${p.lenke}" target="_blank" rel="noopener">&Aring;pne sak</a>` : ""));
+                         (p.lenke ? `<a href="${p.lenke}" target="_blank" rel="noopener">&Aring;pne sak</a> &middot; ` : "") +
+                         `<a href="#" onclick="visIListe(${p.id}); return false;">Vis i listen</a>`);
             koord.push([p.lat, p.lon]);
         });
         if (koord.length) kart.fitBounds(koord, { padding: [40, 40], maxZoom: 13 });

@@ -51,6 +51,9 @@ class ProsjektSignal(models.Model):
     lat = models.FloatField(null = True, blank=True)
     lon = models.FloatField(null=True,blank=True)
     frist = models.DateField(null=True, blank=True)
+    avvist = models.BooleanField(default = False)
+    avvist_av = models.ForeignKey(User, null = True, blank = True, on_delete= models.SET_NULL, related_name ="avviste_signaler")
+    avvist_tid = models.DateTimeField(null =True, blank = True)
 
     
     class Meta:
