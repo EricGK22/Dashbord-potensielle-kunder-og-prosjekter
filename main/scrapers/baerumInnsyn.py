@@ -1,5 +1,6 @@
 import requests
 from .filter import _er_relevant
+from datetime import date, timedelta
 
 SESSION = requests.Session()
 BAERUM_BASE = "https://innsynpluss.onacos.no"
@@ -30,7 +31,9 @@ def _norsk_dato(s):
         return None
     
 
-def _hent_byggesaker_baerum(fra_dato="2026-01-01", sok="regulering", maks_sider = 150):
+def _hent_byggesaker_baerum(fra_dato=None, sok="regulering", maks_sider = 150):
+    if fra_dato is None:
+        fra_dato = (date.today() - timedelta(days=182)).isoformat()
     oppslag = []
     s = requests.Session()
     s.get(BAERUM_PAGE, headers={"user-agent": BAERUM_HEADERS["user-agent"]}, timeout= 20)

@@ -1,7 +1,9 @@
 from .filter import _er_relevant
 from .stedsFinner import _gnr_bnr
 import requests
-
+import json
+from urllib.parse import quote
+from datetime import date, timedelta
 
 SESSION = requests.Session()
 INNSYN_URL = "https://asker-bygg.innsynsportal.no/graphql"
@@ -109,9 +111,11 @@ fragment JournalResult on Journal {
 }"""
 
 
-def _hent_byggesaker_asker(sok="regulering", fra_dato="2026-01-01", limit=50):
+def _hent_byggesaker_asker(sok="regulering", fra_dato=None, limit=50):
+    if fra_dato is None:
+        fra_dato = (date.today() - timedelta(days=182)).isoformat()
     oppslag, offset = [],0
-    
+        
     while True:
         variabler = {
             "journalDocumentsWhere": {"listId": ASKER_ID},
@@ -148,14 +152,14 @@ def _hent_byggesaker_asker(sok="regulering", fra_dato="2026-01-01", limit=50):
             oppslag.append({
                 "kilde": "Asker postliste",
                 "kommune": "Asker",
-                "type": "Byggesak",
+                "type": "Reguleringssak",
                 "referanse": n.get("sequenceNumber", ""),
                 "tittel": navn,
                 "status": (n.get("status") or {}).get("name", ""),
                 "dato": dato,
                 "part": part[0] if part else "",
                 "matrikkel": _gnr_bnr(n),
-                "lenke": f"https://asker-bygg.innsynsportal.no/postjournal-v2/{ASKER_ID}",
+                "lenke": f"https://asker-bygg.innsynsportal.no/postjournal-v2/{ASKER_ID}?params={quote(json.dumps({'search': navn}))}",
             })
         if eldre:
             break

@@ -41,7 +41,7 @@ class ProsjektSignal(models.Model):
     kommune = models.CharField(max_length=50)
     type = models.CharField(max_length=80)
     referanse = models.CharField(max_length=200)
-    tittel = models.CharField(max_length=300)
+    tittel = models.CharField(max_length=500)
     status = models.CharField(max_length=100, blank=True)
     dato = models.DateField(null=True, blank=True)
     lenke = models.URLField(max_length=300, blank=True)
