@@ -54,46 +54,55 @@ def _hent_byggesaker_baerum(fra_dato=None, sok="regulering", maks_sider = 150):
         data = r.json()
         return (((data.get("content") or {}).get("searchItems") or  {}).get("items")) or []
     
-    items = _hent_side(BAERUM_INIT, _body())  
+    items = _hent_side(BAERUM_INIT, _body())
     side = 1
     sett = set()
     saker = {}
+
     while items:
         nye = 0
+        noe_nytt_nok = False
         for it in items:
             ident = it.get("identifier")
             if ident in sett:
                 continue
             sett.add(ident)
             nye += 1
+            props = it.get("properties") or {}
+            dok_dato = _norsk_dato(props.get("dato", ""))
+            if dok_dato and dok_dato >= fra_dato:
+                noe_nytt_nok = True
+            else:
+                continue
             tittel = it.get("title", "")
             if not _er_relevant(tittel):
                 continue
             pid = it.get("parentIdentifier") or ident
             saker.setdefault(pid, []).append(it)
-            if nye == 0 or len(items) <10:
-                break
-            side += 1
-            if side > maks_sider:
-                break
-            items = _hent_side(BAERUM_OVERVIEW, _body(page=side))
-            
-        for pid, dokumenter in saker.items():
-            sakstittel = min((d.get("title") for d in dokumenter), key = len)
-            nyeste = max(dokumenter, key = lambda d: (d.get("properties" or {}).get("dato", "")))
-            props = nyeste.get("properties") or {}
-            oppslag.append({
-                "kilde": "Bærum postliste",
-                "kommune": "Bærum",
-                "type": "Byggesak",
-                "referanse": props.get("dokumentID") or nyeste.get("identifier") or "",
-                "tittel": sakstittel,
-                "status": {"J": "Journalført"}.get(nyeste.get("status", ""), nyeste.get("status", "")),
-                "dato": _norsk_dato(props.get("dato", "")),
-                "part": props.get("mottaker") or props.get("avsender", ""),
-                "matrikkel": "",
-                "lenke": f"{BAERUM_PAGE}#/?searchTerm={quote(sakstittel)}",
-            })
+
+        if nye == 0 or len(items) < 10 or not noe_nytt_nok:
+            break
+        side += 1
+        if side > maks_sider:
+            break
+        items = _hent_side(BAERUM_OVERVIEW, _body(page=side))
+
+    for pid, dokumenter in saker.items():
+        sakstittel = min((d.get("title", "") for d in dokumenter), key=len)
+        nyeste = max(dokumenter, key=lambda d: (d.get("properties") or {}).get("dato", ""))
+        props = nyeste.get("properties") or {}
+        oppslag.append({
+            "kilde": "Bærum postliste",
+            "kommune": "Bærum",
+            "type": "Byggesak",
+            "referanse": props.get("dokumentID") or nyeste.get("identifier") or "",
+            "tittel": sakstittel,
+            "status": {"J": "Journalført"}.get(nyeste.get("status", ""), nyeste.get("status", "")),
+            "dato": _norsk_dato(props.get("dato", "")),
+            "part": props.get("mottaker") or props.get("avsender", ""),
+            "matrikkel": "",
+            "lenke": f"{BAERUM_PAGE}#/?searchTerm={quote(sakstittel)}",
+        })
     return oppslag
 
 
