@@ -1,5 +1,6 @@
 import requests
 from .filter import _er_relevant
+from urllib.parse import quote
 from datetime import date, timedelta
 
 SESSION = requests.Session()
@@ -78,7 +79,7 @@ def _hent_byggesaker_baerum(fra_dato=None, sok="regulering", maks_sider = 150):
                 "dato": _norsk_dato(props.get("dato", "")),
                 "part": props.get("mottaker") or props.get("avsender", ""),
                 "matrikkel": "",
-                "lenke": BAERUM_PAGE,
+                "lenke": f"{BAERUM_PAGE}#/?searchTerm={quote(tittel)}",
             })
         if nye == 0 or len(items) < 10:
             break         
