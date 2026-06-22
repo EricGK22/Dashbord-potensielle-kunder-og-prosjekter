@@ -44,7 +44,7 @@ class ProsjektSignal(models.Model):
     tittel = models.CharField(max_length=500)
     status = models.CharField(max_length=100, blank=True)
     dato = models.DateField(null=True, blank=True)
-    lenke = models.URLField(max_length=300, blank=True)
+    lenke = models.URLField(max_length=500, blank=True)
     oppdaget = models.DateField(auto_now_add=True)
     part = models.CharField(max_length=800, blank=True)
     matrikkel = models.CharField(blank=True)
